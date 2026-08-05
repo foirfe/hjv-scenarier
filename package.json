@@ -1,0 +1,13 @@
+{
+  "name": "hjv-scenarier",
+  "private": true,
+  "scripts": {
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f db",
+    "db:status": "docker compose ps",
+    "dev:api": "pnpm --dir apps/api start:dev",
+    "dev:management": "pnpm --dir apps/management-web dev",
+    "dev:user": "pnpm --dir apps/users-web dev"
+  }
+}

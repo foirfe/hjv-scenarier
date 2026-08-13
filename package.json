@@ -9,5 +9,8 @@
     "dev:api": "pnpm --dir apps/api start:dev",
     "dev:management": "pnpm --dir apps/management-web dev",
     "dev:user": "pnpm --dir apps/users-web dev"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.12"
   }
 }

@@ -8,23 +8,67 @@ datasource db {
   provider = "postgresql"
 }
 
-enum TaskEnvironment {
-  LAND
-  SEA
-}
-
 enum TaskStatus {
+  ACTIVE
   DRAFT
-  PUBLISHED
   ARCHIVED
 }
 
+enum AnswerType {
+  MULTIPLE_CHOICE
+  FREE_TEXT
+  YES_NO
+}
+
 model Task {
-  id          String          @id @default(uuid())
-  title       String          @db.VarChar(150)
-  description String
-  environment TaskEnvironment @default(SEA)
-  status      TaskStatus      @default(DRAFT)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id           String      @id @default(uuid()) @db.Uuid
+  name         String
+  description  String?
+  instructions String
+  status       TaskStatus
+  answerType   AnswerType? @map("answer_type")
+
+  environmentId Int @map("environment_id")
+  taskTypeId    Int @map("task_type_id")
+
+  environment Environment @relation(fields: [environmentId], references: [id])
+  taskType    TaskType    @relation(fields: [taskTypeId], references: [id])
+
+  options TaskOption[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("tasks")
+}
+
+model TaskOption {
+  id         String  @id @default(uuid()) @db.Uuid
+  taskId     String  @map("task_id") @db.Uuid
+  optionText String  @map("option_text")
+  isCorrect  Boolean @map("is_correct")
+  sortOrder  Int     @map("sort_order")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_options")
+}
+
+model TaskType {
+  id   Int    @id @default(autoincrement())
+  code String @unique
+  name String
+
+  tasks Task[]
+
+  @@map("task_types")
+}
+
+model Environment {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  tasks Task[]
+
+  @@map("environments")
 }

@@ -20,6 +20,12 @@ enum AnswerType {
   YES_NO
 }
 
+enum ScenarioStatus {
+  DRAFT
+  READY
+  ARCHIVED
+}
+
 model Task {
   id           String      @id @default(uuid()) @db.Uuid
   name         String
@@ -34,7 +40,8 @@ model Task {
   environment Environment @relation(fields: [environmentId], references: [id])
   taskType    TaskType    @relation(fields: [taskTypeId], references: [id])
 
-  options TaskOption[]
+  options       TaskOption[]
+  scenarioTasks ScenarioTask[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -71,4 +78,50 @@ model Environment {
   tasks Task[]
 
   @@map("environments")
+}
+
+model Scenario {
+  id          String         @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  status      ScenarioStatus @default(DRAFT)
+
+  scenarioTasks ScenarioTask[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("scenarios")
+}
+
+model ScenarioTask {
+  id         String @id @default(uuid()) @db.Uuid
+  scenarioId String @map("scenario_id") @db.Uuid
+  taskId     String @map("task_id") @db.Uuid
+
+  latitude     Decimal @db.Decimal(9, 6)
+  longitude    Decimal @db.Decimal(9, 6)
+  radiusMeters Int     @map("radius_meters")
+
+  scenario Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  task     Task     @relation(fields: [taskId], references: [id])
+
+  dependencies ScenarioTaskDependency[] @relation("TaskDependencies")
+  requiredBy   ScenarioTaskDependency[] @relation("TaskPrerequisites")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("scenario_tasks")
+}
+
+model ScenarioTaskDependency {
+  scenarioTaskId     String @map("scenario_task_id") @db.Uuid
+  prerequisiteTaskId String @map("prerequisite_task_id") @db.Uuid
+
+  scenarioTask     ScenarioTask @relation("TaskDependencies", fields: [scenarioTaskId], references: [id], onDelete: Cascade)
+  prerequisiteTask ScenarioTask @relation("TaskPrerequisites", fields: [prerequisiteTaskId], references: [id], onDelete: Cascade)
+
+  @@id([scenarioTaskId, prerequisiteTaskId])
+  @@map("scenario_task_dependencies")
 }

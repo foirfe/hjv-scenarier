@@ -10,8 +10,10 @@ async function bootstrap() {
     .setTitle('HJV Scenarier API')
     .setDescription('API til opgaver, scenarier og scenarieafvikling')
     .setVersion('1.0')
+    .addBearerAuth()
     .addTag('tasks', 'Administration af opgaver')
     .addTag('scenarios', 'Administration af scenarier')
+    .addTag('users', 'Administrationo af brugere')
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);

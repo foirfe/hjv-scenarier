@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+
+.git
+.gitignore
+
+**/dist
+**/.vite
+
+.env
+**/.env
+
+apps/api/generated

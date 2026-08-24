@@ -1,15 +1,27 @@
 {
   "name": "hjv-scenarier",
   "private": true,
-  "scripts": {
-    "db:up": "docker compose up -d",
-    "db:down": "docker compose down",
-    "db:logs": "docker compose logs -f db",
-    "db:status": "docker compose ps",
-    "dev:api": "pnpm --dir apps/api start:dev",
-    "dev:management": "pnpm --dir apps/management-web dev",
-    "dev:user": "pnpm --dir apps/users-web dev"
-  },
+"scripts": {
+  "docker:up": "docker compose up -d --build",
+  "docker:down": "docker compose down",
+  "docker:status": "docker compose ps",
+  "docker:logs": "docker compose logs -f",
+
+  "dev:backend": "docker compose up --build --watch",
+  "dev:management": "pnpm --dir apps/management-web dev",
+  "dev:user": "pnpm --dir apps/users-web dev",
+
+  "api:logs": "docker compose logs -f api",
+  "db:logs": "docker compose logs -f db",
+
+  "db:migrate": "docker compose exec api pnpm prisma migrate dev",
+  "db:apply": "docker compose exec api pnpm prisma migrate deploy",
+  "db:generate": "docker compose exec api pnpm prisma generate",
+  "db:seed": "docker compose exec api pnpm prisma db seed",
+  "db:status": "docker compose exec api pnpm prisma migrate status",
+  "db:studio": "docker compose exec api pnpm prisma studio --browser none --port 5555",
+  "setup:dev": "docker compose up -d --build && docker compose exec api pnpm prisma migrate deploy && docker compose exec api pnpm prisma generate"
+},
   "devDependencies": {
     "tsx": "^4.23.12"
   }

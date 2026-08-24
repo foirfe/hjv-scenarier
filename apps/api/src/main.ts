@@ -13,7 +13,7 @@ async function bootstrap() {
     .addBearerAuth()
     .addTag('tasks', 'Administration af opgaver')
     .addTag('scenarios', 'Administration af scenarier')
-    .addTag('users', 'Administrationo af brugere')
+    .addTag('users', 'Administration af brugere')
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);

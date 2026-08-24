@@ -16,4 +16,4 @@ WORKDIR /workspace/apps/api
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "pnpm prisma generate && pnpm start:dev"]
+CMD ["sh", "-c", "pnpm prisma generate && pnpm start:docker"]

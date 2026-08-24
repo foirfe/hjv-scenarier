@@ -7,7 +7,8 @@
   "docker:status": "docker compose ps",
   "docker:logs": "docker compose logs -f",
 
-  "dev:backend": "docker compose up --build --watch",
+  "dev:backend": "docker compose up --watch",
+  "dev:backend:build": "docker compose up --build --watch",
   "dev:management": "pnpm --dir apps/management-web dev",
   "dev:user": "pnpm --dir apps/users-web dev",
 

@@ -10,9 +10,12 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersService } from './users.service';
+import { UserRole } from '../../generated/prisma/enums';
+import { Roles } from '@/auth/decorators/roles.decorator';
 
 @ApiTags('users')
 @Controller('users')
+@Roles(UserRole.ADMIN)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
   @ApiBearerAuth()

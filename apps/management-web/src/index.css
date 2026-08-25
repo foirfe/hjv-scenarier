@@ -16,11 +16,14 @@ body {
 }
 /*SIDEBAR*/
 .sidebar {
-  width: 220px;
+ width: 220px;
   min-height: 100vh;
   background: #173b34;
   color: white;
   padding: 20px;
+
+  display: flex;
+  flex-direction: column;
 }
 .sidebar-logo {
   display: flex;
@@ -39,6 +42,17 @@ body {
 }
 .sidebar a.active {
   background: rgba(255, 255, 255, 0.15);
+}
+
+.sidebar-user {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sidebar-user button {
+  padding: 10px;
+  cursor: pointer;
 }
 .management-content {
   flex: 1;

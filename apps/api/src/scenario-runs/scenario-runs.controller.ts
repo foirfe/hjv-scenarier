@@ -1,4 +1,13 @@
-import { Body, Controller, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
@@ -8,6 +17,8 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CreateScenarioRunDto } from './dto/create-scenario-run.dto';
 import { AddScenarioRunUserDto } from './dto/add-scenario-run-user.dto';
 import { ScenarioRunsService } from './scenario-runs.service';
+import { RemoveScenarioRunUserDto } from './dto/remove-scenario-run-user.dto';
+import { UpdateScenarioRunUserDto } from './dto/update-scenario-run.user.dto';
 
 @ApiTags('scenario-runs')
 @ApiBearerAuth()
@@ -19,7 +30,7 @@ export class ScenarioRunsController {
   create(@Body() dto: CreateScenarioRunDto) {
     return this.scenarioRunsService.create(dto);
   }
-
+  //Add Scenario Run User
   @Post(':runId/users')
   @Roles(UserRole.ADMIN)
   addUser(
@@ -27,5 +38,29 @@ export class ScenarioRunsController {
     @Body() dto: AddScenarioRunUserDto,
   ) {
     return this.scenarioRunsService.addUser(runId, dto);
+  }
+  //Update Scenario Run User Role
+  @Patch('/:runId/user/:userId')
+  @Roles(UserRole.ADMIN)
+  updateUser(
+    @Param('runId', ParseUUIDPipe) runId: string,
+    @Param('userId', ParseUUIDPipe) userId: string,
+    @Body() dto: UpdateScenarioRunUserDto,
+  ) {
+    return this.scenarioRunsService.updateScenarioRunUser(runId, userId, dto);
+  }
+  //Remove Scenario Run User
+  @Delete(':runId/user')
+  @Roles(UserRole.ADMIN)
+  removeUser(
+    @Param('runId', ParseUUIDPipe) runId: string,
+    @Body() dto: RemoveScenarioRunUserDto,
+  ) {
+    return this.scenarioRunsService.removeScenarioRunUser(runId, dto);
+  }
+  //GET Scenario Run
+  @Get(':runId')
+  findOne(@Param('runId', ParseUUIDPipe) runId: string) {
+    return this.scenarioRunsService.findOne(runId);
   }
 }

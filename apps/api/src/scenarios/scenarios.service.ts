@@ -176,6 +176,7 @@ export class ScenariosService {
       },
     });
   }
+  //DELETE SCENARIO
   remove(id: string) {
     return this.prisma.scenario.delete({
       where: { id },

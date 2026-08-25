@@ -8,6 +8,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateScenarioRunDto } from './dto/create-scenario-run.dto';
 import { AddScenarioRunUserDto } from './dto/add-scenario-run-user.dto';
+import { RemoveScenarioRunUserDto } from './dto/remove-scenario-run-user.dto';
+import { UpdateScenarioRunUserDto } from './dto/update-scenario-run.user.dto';
 
 @Injectable()
 export class ScenarioRunsService {
@@ -113,6 +115,98 @@ export class ScenarioRunsService {
             role: true,
             status: true,
           },
+        },
+      },
+    });
+  }
+  async findOne(runId: string) {
+    const scenarioRun = await this.prisma.scenarioRun.findUnique({
+      where: {
+        id: runId,
+      },
+
+      select: {
+        id: true,
+        status: true,
+        startedAt: true,
+        completedAt: true,
+        createdAt: true,
+
+        scenario: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            status: true,
+          },
+        },
+
+        users: {
+          select: {
+            role: true,
+            createdAt: true,
+
+            user: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                role: true,
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!scenarioRun) {
+      throw new NotFoundException('Scenarieafviklingen blev ikke fundet');
+    }
+    return scenarioRun;
+  }
+
+  //Update UserRole In ScenarioRun
+  async updateScenarioRunUser(
+    scenarioRunId: string,
+    userId: string,
+    dto: UpdateScenarioRunUserDto,
+  ) {
+    const scenarioRunUser = await this.prisma.scenarioRunUser.findUnique({
+      where: {
+        scenarioRunId_userId: {
+          scenarioRunId,
+          userId,
+        },
+      },
+    });
+    if (!scenarioRunUser) {
+      throw new NotFoundException(
+        'Brugeren findes ikke på denne scenarioafvikling',
+      );
+    }
+    return this.prisma.scenarioRunUser.update({
+      where: {
+        scenarioRunId_userId: {
+          scenarioRunId,
+          userId,
+        },
+      },
+      data: {
+        role: dto.role,
+      },
+    });
+  }
+  //Remove User From ScenarioRun
+  async removeScenarioRunUser(
+    scenarioRunId: string,
+    dto: RemoveScenarioRunUserDto,
+  ) {
+    return this.prisma.scenarioRunUser.delete({
+      where: {
+        scenarioRunId_userId: {
+          scenarioRunId,
+          userId: dto.userId,
         },
       },
     });

@@ -175,6 +175,7 @@ model ScenarioRun {
 
   scenario Scenario          @relation(fields: [scenarioId], references: [id])
   users    ScenarioRunUser[]
+  tasks    ScenarioRunTask[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -194,4 +195,59 @@ model ScenarioRunUser {
 
   @@id([scenarioRunId, userId])
   @@map("scenario_run_users")
+}
+
+model ScenarioRunTask {
+  id            String @id @default(uuid()) @db.Uuid
+  scenarioRunId String @map("scenario_run_id") @db.Uuid
+
+  sourceScenarioTaskId String @map("source_scenario_task_id") @db.Uuid
+  sourceTaskId         String @map("source_task_id") @db.Uuid
+
+  name         String
+  description  String?
+  instructions String
+  answerType   AnswerType? @map("answer_type")
+  taskTypeCode String      @map("task_type_code")
+
+  latitude     Decimal @db.Decimal(9, 6)
+  longitude    Decimal @db.Decimal(9, 6)
+  radiusMeters Int     @map("radius_meters")
+
+  scenarioRun ScenarioRun @relation(fields: [scenarioRunId], references: [id], onDelete: Cascade)
+
+  options ScenarioRunTaskOption[]
+
+  dependencies ScenarioRunTaskDependency[] @relation("RunTaskDependencies")
+  requiredBy   ScenarioRunTaskDependency[] @relation("RunTaskPrerequisites")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([scenarioRunId, sourceScenarioTaskId])
+  @@map("scenario_run_tasks")
+}
+
+model ScenarioRunTaskOption {
+  id                String @id @default(uuid()) @db.Uuid
+  scenarioRunTaskId String @map("scenario_run_task_id") @db.Uuid
+
+  optionText String  @map("option_text")
+  isCorrect  Boolean @map("is_correct")
+  sortOrder  Int     @map("sort_order")
+
+  scenarioRunTask ScenarioRunTask @relation(fields: [scenarioRunTaskId], references: [id], onDelete: Cascade)
+
+  @@map("scenario_run_task_options")
+}
+
+model ScenarioRunTaskDependency {
+  scenarioRunTaskId     String @map("scenario_run_task_id") @db.Uuid
+  prerequisiteRunTaskId String @map("prerequisite_run_task_id") @db.Uuid
+
+  scenarioRunTask ScenarioRunTask @relation("RunTaskDependencies", fields: [scenarioRunTaskId], references: [id], onDelete: Cascade)
+
+  prerequisiteRunTask ScenarioRunTask @relation("RunTaskPrerequisites", fields: [prerequisiteRunTaskId], references: [id], onDelete: Cascade)
+
+  @@id([scenarioRunTaskId, prerequisiteRunTaskId])
+  @@map("scenario_run_task_dependencies")
 }

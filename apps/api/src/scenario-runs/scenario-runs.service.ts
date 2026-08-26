@@ -213,7 +213,21 @@ export class ScenarioRunsService {
       },
       include: {
         users: true,
-        scenario: true,
+        scenario: {
+          include: {
+            scenarioTasks: {
+              include: {
+                task: {
+                  include: {
+                    taskType: true,
+                    options: true,
+                  },
+                },
+                dependencies: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -238,43 +252,80 @@ export class ScenarioRunsService {
         'Scenariet skal være READY før afviklingen kan startes',
       );
     }
+    //SNAPSHOTS MÅ IKKE FEJLE, VI VIL HAVE ALT ELLER INTET
+    return this.prisma.$transaction(async (tx) => {
+      const taskIdMap = new Map<string, string>();
 
-    return this.prisma.scenarioRun.update({
-      where: {
-        id: runId,
-      },
+      for (const scenarioTask of scenarioRun.scenario.scenarioTasks) {
+        const runTask = await tx.scenarioRunTask.create({
+          data: {
+            scenarioRunId: runId,
 
-      data: {
-        status: 'IN_PROGRESS',
-        startedAt: new Date(),
-      },
+            sourceScenarioTaskId: scenarioTask.id,
+            sourceTaskId: scenarioTask.task.id,
 
-      select: {
-        id: true,
-        status: true,
-        startedAt: true,
-        completedAt: true,
+            name: scenarioTask.task.name,
+            description: scenarioTask.task.description,
+            instructions: scenarioTask.task.instructions,
+            answerType: scenarioTask.task.answerType,
+            taskTypeCode: scenarioTask.task.taskType.code,
 
-        scenario: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
+            latitude: scenarioTask.latitude,
+            longitude: scenarioTask.longitude,
+            radiusMeters: scenarioTask.radiusMeters,
 
-        users: {
-          select: {
-            role: true,
-
-            user: {
-              select: {
-                id: true,
-                displayName: true,
-              },
+            options: {
+              create: scenarioTask.task.options.map((option) => ({
+                optionText: option.optionText,
+                isCorrect: option.isCorrect,
+                sortOrder: option.sortOrder,
+              })),
             },
           },
+        });
+
+        taskIdMap.set(scenarioTask.id, runTask.id);
+      }
+
+      for (const scenarioTask of scenarioRun.scenario.scenarioTasks) {
+        const runTaskId = taskIdMap.get(scenarioTask.id);
+
+        if (!runTaskId) {
+          throw new Error('Kunne ikke finde snapshot af scenario task');
+        }
+
+        for (const dependency of scenarioTask.dependencies) {
+          const prerequisiteRunTaskId = taskIdMap.get(
+            dependency.prerequisiteTaskId,
+          );
+
+          if (!prerequisiteRunTaskId) {
+            throw new Error('Kunne ikke finde snapshot af prerequisite task');
+          }
+
+          await tx.scenarioRunTaskDependency.create({
+            data: {
+              scenarioRunTaskId: runTaskId,
+              prerequisiteRunTaskId,
+            },
+          });
+        }
+      }
+
+      return tx.scenarioRun.update({
+        where: {
+          id: runId,
         },
-      },
+        data: {
+          status: 'IN_PROGRESS',
+          startedAt: new Date(),
+        },
+        select: {
+          id: true,
+          status: true,
+          startedAt: true,
+        },
+      });
     });
   }
 }

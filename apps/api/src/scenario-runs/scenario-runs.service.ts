@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { TaskProgressStatus } from '../../generated/prisma/client';
 import { CreateScenarioRunDto } from './dto/create-scenario-run.dto';
 import { AddScenarioRunUserDto } from './dto/add-scenario-run-user.dto';
 import { RemoveScenarioRunUserDto } from './dto/remove-scenario-run-user.dto';
@@ -311,7 +312,45 @@ export class ScenarioRunsService {
           });
         }
       }
+      //UPDATE PROGRESS PÅ BRUGERE I SCENARIORUN
+      const startedAt = new Date();
 
+      const progressRows: {
+        scenarioRunTaskId: string;
+        userId: string;
+        status: TaskProgressStatus;
+        availableAt: Date | null;
+      }[] = [];
+
+      for (const runUser of scenarioRun.users) {
+        if (runUser.role === 'INSTRUCTOR') {
+          continue;
+        }
+
+        for (const scenarioTask of scenarioRun.scenario.scenarioTasks) {
+          const scenarioRunTaskId = taskIdMap.get(scenarioTask.id);
+
+          if (!scenarioRunTaskId) {
+            throw new Error('Kunne ikke finde snapshot af scenario task');
+          }
+
+          const hasDependencies = scenarioTask.dependencies.length > 0;
+
+          progressRows.push({
+            scenarioRunTaskId,
+            userId: runUser.userId,
+
+            status: hasDependencies
+              ? TaskProgressStatus.LOCKED
+              : TaskProgressStatus.AVAILABLE,
+
+            availableAt: hasDependencies ? null : startedAt,
+          });
+        }
+      }
+      await tx.scenarioRunTaskProgress.createMany({
+        data: progressRows,
+      });
       return tx.scenarioRun.update({
         where: {
           id: runId,

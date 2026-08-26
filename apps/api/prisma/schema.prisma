@@ -49,6 +49,13 @@ enum ScenarioRunStatus {
   ABORTED
 }
 
+enum TaskProgressStatus {
+  LOCKED
+  AVAILABLE
+  ACTIVE
+  COMPLETED
+}
+
 model User {
   id           String     @id @default(uuid()) @db.Uuid
   username     String     @unique
@@ -57,9 +64,10 @@ model User {
   role         UserRole
   status       UserStatus @default(ACTIVE)
 
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @updatedAt @map("updated_at")
+  createdAt        DateTime                  @default(now()) @map("created_at")
+  updatedAt        DateTime                  @updatedAt @map("updated_at")
   scenarioRunUsers ScenarioRunUser[]
+  taskProgress     ScenarioRunTaskProgress[]
 
   @@map("users")
 }
@@ -216,7 +224,8 @@ model ScenarioRunTask {
 
   scenarioRun ScenarioRun @relation(fields: [scenarioRunId], references: [id], onDelete: Cascade)
 
-  options ScenarioRunTaskOption[]
+  options  ScenarioRunTaskOption[]
+  progress ScenarioRunTaskProgress[]
 
   dependencies ScenarioRunTaskDependency[] @relation("RunTaskDependencies")
   requiredBy   ScenarioRunTaskDependency[] @relation("RunTaskPrerequisites")
@@ -250,4 +259,25 @@ model ScenarioRunTaskDependency {
 
   @@id([scenarioRunTaskId, prerequisiteRunTaskId])
   @@map("scenario_run_task_dependencies")
+}
+
+model ScenarioRunTaskProgress {
+  scenarioRunTaskId String @map("scenario_run_task_id") @db.Uuid
+  userId            String @map("user_id") @db.Uuid
+
+  status TaskProgressStatus @default(LOCKED)
+
+  availableAt DateTime? @map("available_at")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  scenarioRunTask ScenarioRunTask @relation(fields: [scenarioRunTaskId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@id([scenarioRunTaskId, userId])
+  @@map("scenario_run_task_progress")
 }

@@ -63,4 +63,9 @@ export class ScenarioRunsController {
   findOne(@Param('runId', ParseUUIDPipe) runId: string) {
     return this.scenarioRunsService.findOne(runId);
   }
+  @Patch(':runId/start')
+  @Roles(UserRole.ADMIN) //SENERE SKAL INSTRUCTOR/TEAMLEADER OGSÅ KUNNE STARTE SCENARIO RUN
+  start(@Param('runId', ParseUUIDPipe) runId: string) {
+    return this.scenarioRunsService.start(runId);
+  }
 }

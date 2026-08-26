@@ -14,6 +14,7 @@ import { UpdateScenarioRunUserDto } from './dto/update-scenario-run.user.dto';
 @Injectable()
 export class ScenarioRunsService {
   constructor(private readonly prisma: PrismaService) {}
+  //CREATE SCENARIO RUN
   async create(dto: CreateScenarioRunDto) {
     const scenario = await this.prisma.scenario.findUnique({
       where: {
@@ -94,14 +95,12 @@ export class ScenarioRunsService {
         'Brugeren er allerede tilføjet til scenarieafviklingen',
       );
     }
-
     return this.prisma.scenarioRunUser.create({
       data: {
         scenarioRunId: runId,
         userId: dto.userId,
         role: dto.role,
       },
-
       select: {
         userId: true,
         role: true,
@@ -119,19 +118,18 @@ export class ScenarioRunsService {
       },
     });
   }
+  //FOR GET SCENARIORUN
   async findOne(runId: string) {
     const scenarioRun = await this.prisma.scenarioRun.findUnique({
       where: {
         id: runId,
       },
-
       select: {
         id: true,
         status: true,
         startedAt: true,
         completedAt: true,
         createdAt: true,
-
         scenario: {
           select: {
             id: true,
@@ -140,12 +138,10 @@ export class ScenarioRunsService {
             status: true,
           },
         },
-
         users: {
           select: {
             role: true,
             createdAt: true,
-
             user: {
               select: {
                 id: true,
@@ -159,13 +155,11 @@ export class ScenarioRunsService {
         },
       },
     });
-
     if (!scenarioRun) {
       throw new NotFoundException('Scenarieafviklingen blev ikke fundet');
     }
     return scenarioRun;
   }
-
   //Update UserRole In ScenarioRun
   async updateScenarioRunUser(
     scenarioRunId: string,
@@ -207,6 +201,78 @@ export class ScenarioRunsService {
         scenarioRunId_userId: {
           scenarioRunId,
           userId: dto.userId,
+        },
+      },
+    });
+  }
+  //START SCENARIORUN
+  async start(runId: string) {
+    const scenarioRun = await this.prisma.scenarioRun.findUnique({
+      where: {
+        id: runId,
+      },
+      include: {
+        users: true,
+        scenario: true,
+      },
+    });
+
+    if (!scenarioRun) {
+      throw new NotFoundException('Scenarieafviklingen blev ikke fundet');
+    }
+
+    if (scenarioRun.status !== 'NOT_STARTED') {
+      throw new BadRequestException(
+        'Kun en scenarieafvikling der ikke er startet kan startes',
+      );
+    }
+
+    if (scenarioRun.users.length === 0) {
+      throw new BadRequestException(
+        'Scenarieafviklingen skal have mindst én bruger',
+      );
+    }
+
+    if (scenarioRun.scenario.status !== 'READY') {
+      throw new BadRequestException(
+        'Scenariet skal være READY før afviklingen kan startes',
+      );
+    }
+
+    return this.prisma.scenarioRun.update({
+      where: {
+        id: runId,
+      },
+
+      data: {
+        status: 'IN_PROGRESS',
+        startedAt: new Date(),
+      },
+
+      select: {
+        id: true,
+        status: true,
+        startedAt: true,
+        completedAt: true,
+
+        scenario: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+
+        users: {
+          select: {
+            role: true,
+
+            user: {
+              select: {
+                id: true,
+                displayName: true,
+              },
+            },
+          },
         },
       },
     });

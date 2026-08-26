@@ -367,4 +367,120 @@ export class ScenarioRunsService {
       });
     });
   }
+  //COMPLETE TASKS OG VALIDERING DERTIL
+  async completeTask(runId: string, runTaskId: string, userId: string) {
+    const scenarioRun = await this.prisma.scenarioRun.findUnique({
+      where: {
+        id: runId,
+      },
+    });
+
+    if (!scenarioRun) {
+      throw new NotFoundException('Scenarieafviklingen blev ikke fundet');
+    }
+
+    if (scenarioRun.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Scenarieafviklingen er ikke i gang');
+    }
+
+    const progress = await this.prisma.scenarioRunTaskProgress.findUnique({
+      where: {
+        scenarioRunTaskId_userId: {
+          scenarioRunTaskId: runTaskId,
+          userId,
+        },
+      },
+
+      include: {
+        scenarioRunTask: true,
+      },
+    });
+
+    if (!progress) {
+      throw new NotFoundException('Opgaven blev ikke fundet for denne bruger');
+    }
+
+    if (progress.scenarioRunTask.scenarioRunId !== runId) {
+      throw new BadRequestException(
+        'Opgaven tilhører ikke denne scenarieafvikling',
+      );
+    }
+
+    if (progress.status !== TaskProgressStatus.ACTIVE) {
+      throw new BadRequestException('Kun en aktiv opgave kan færdiggøres');
+    }
+
+    const completedAt = new Date();
+
+    return this.prisma.$transaction(async (tx) => {
+      const completedProgress = await tx.scenarioRunTaskProgress.update({
+        where: {
+          scenarioRunTaskId_userId: {
+            scenarioRunTaskId: runTaskId,
+            userId,
+          },
+        },
+
+        data: {
+          status: TaskProgressStatus.COMPLETED,
+          completedAt,
+        },
+      });
+
+      const dependentTasks = await tx.scenarioRunTaskDependency.findMany({
+        where: {
+          prerequisiteRunTaskId: runTaskId,
+        },
+
+        select: {
+          scenarioRunTaskId: true,
+        },
+      });
+
+      for (const dependent of dependentTasks) {
+        const prerequisites = await tx.scenarioRunTaskDependency.findMany({
+          where: {
+            scenarioRunTaskId: dependent.scenarioRunTaskId,
+          },
+
+          select: {
+            prerequisiteRunTaskId: true,
+          },
+        });
+
+        const completedPrerequisites = await tx.scenarioRunTaskProgress.count({
+          where: {
+            userId,
+
+            scenarioRunTaskId: {
+              in: prerequisites.map(
+                (dependency) => dependency.prerequisiteRunTaskId,
+              ),
+            },
+
+            status: TaskProgressStatus.COMPLETED,
+          },
+        });
+
+        if (completedPrerequisites !== prerequisites.length) {
+          continue;
+        }
+
+        await tx.scenarioRunTaskProgress.updateMany({
+          where: {
+            scenarioRunTaskId: dependent.scenarioRunTaskId,
+            userId,
+            status: TaskProgressStatus.LOCKED,
+          },
+
+          data: {
+            status: TaskProgressStatus.AVAILABLE,
+            availableAt: completedAt,
+          },
+        });
+      }
+
+      return completedProgress;
+    });
+  }
 }

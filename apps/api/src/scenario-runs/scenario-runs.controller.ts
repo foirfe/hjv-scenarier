@@ -7,15 +7,23 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Req,
 } from '@nestjs/common';
 
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { UserRole } from '../../generated/prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 import { CreateScenarioRunDto } from './dto/create-scenario-run.dto';
 import { AddScenarioRunUserDto } from './dto/add-scenario-run-user.dto';
+import type { AuthenticatedRequest } from '../auth/types/authenticated-request';
 import { ScenarioRunsService } from './scenario-runs.service';
 import { RemoveScenarioRunUserDto } from './dto/remove-scenario-run-user.dto';
 import { UpdateScenarioRunUserDto } from './dto/update-scenario-run.user.dto';
@@ -27,12 +35,31 @@ export class ScenarioRunsController {
   constructor(private readonly scenarioRunsService: ScenarioRunsService) {}
   @Post()
   @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Opret et nyt scenario run',
+    description:
+      'Opretter en ny afvikling af et valgt scenarie. Kræver ADMIN-rolle.',
+  })
+  @ApiResponse({ status: 201, description: 'Scenario run blev oprettet.' })
+  @ApiResponse({ status: 401, description: 'Ikke autoriseret.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Adgang nægtet (mangler ADMIN-rolle).',
+  })
   create(@Body() dto: CreateScenarioRunDto) {
     return this.scenarioRunsService.create(dto);
   }
   //Add Scenario Run User
   @Post(':runId/users')
   @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Tilføj bruger til scenario run',
+    description:
+      'Tilknytter en bruger med en specifik rolle til det valgte scenario run.',
+  })
+  @ApiParam({ name: 'runId', description: 'UUID på det gældende scenario run' })
+  @ApiResponse({ status: 200, description: 'Bruger tilføjet succesfuldt.' })
+  @ApiResponse({ status: 404, description: 'Scenario run blev ikke fundet.' })
   addUser(
     @Param('runId', ParseUUIDPipe) runId: string,
     @Body() dto: AddScenarioRunUserDto,
@@ -42,6 +69,18 @@ export class ScenarioRunsController {
   //Update Scenario Run User Role
   @Patch('/:runId/user/:userId')
   @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Opdater brugers rolle i et scenario run',
+    description:
+      'Ændrer den tildelte rolle for en specifik bruger i afviklingen.',
+  })
+  @ApiParam({ name: 'runId', description: 'UUID på det gældende scenario run' })
+  @ApiParam({ name: 'userId', description: 'UUID på brugeren' })
+  @ApiResponse({ status: 200, description: 'Brugerens rolle opdateret.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Bruger eller run blev ikke fundet.',
+  })
   updateUser(
     @Param('runId', ParseUUIDPipe) runId: string,
     @Param('userId', ParseUUIDPipe) userId: string,
@@ -52,6 +91,13 @@ export class ScenarioRunsController {
   //Remove Scenario Run User
   @Delete(':runId/user')
   @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Fjern bruger fra scenario run',
+    description: 'Fjerner en bruger fra det specificerede scenario run.',
+  })
+  @ApiParam({ name: 'runId', description: 'UUID på det gældende scenario run' })
+  @ApiResponse({ status: 200, description: 'Bruger fjernet fra scenario run.' })
+  @ApiResponse({ status: 404, description: 'Scenario run blev ikke fundet.' })
   removeUser(
     @Param('runId', ParseUUIDPipe) runId: string,
     @Body() dto: RemoveScenarioRunUserDto,
@@ -60,12 +106,64 @@ export class ScenarioRunsController {
   }
   //GET Scenario Run
   @Get(':runId')
+  @ApiOperation({
+    summary: 'Hent et scenario run',
+    description:
+      'Henter detaljeret information samt status for et specifikt scenario run.',
+  })
+  @ApiParam({ name: 'runId', description: 'UUID på det ønskede scenario run' })
+  @ApiResponse({
+    status: 200,
+    description: 'Scenario run fundet og returneret.',
+  })
+  @ApiResponse({ status: 404, description: 'Scenario run blev ikke fundet.' })
   findOne(@Param('runId', ParseUUIDPipe) runId: string) {
     return this.scenarioRunsService.findOne(runId);
   }
   @Patch(':runId/start')
+  @ApiOperation({
+    summary: 'Start et scenario run',
+    description: 'Sætter status for scenario run til aktiv/startet.',
+  })
+  @ApiParam({
+    name: 'runId',
+    description: 'UUID på det scenario run der skal startes',
+  })
+  @ApiResponse({ status: 200, description: 'Scenario run er startet.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Scenario run kan ikke startes i sin nuværende tilstand.',
+  })
   @Roles(UserRole.ADMIN) //SENERE SKAL INSTRUCTOR/TEAMLEADER OGSÅ KUNNE STARTE SCENARIO RUN
   start(@Param('runId', ParseUUIDPipe) runId: string) {
     return this.scenarioRunsService.start(runId);
+  }
+
+  @Patch(':runId/tasks/:runTaskId/complete')
+  @ApiOperation({
+    summary: 'Marker en opgave som udført',
+    description:
+      'Marker en specifik opgave i et scenario run som færdig for den indloggede bruger.',
+  })
+  @ApiParam({ name: 'runId', description: 'UUID på det gældende scenario run' })
+  @ApiParam({ name: 'runTaskId', description: 'UUID på opgaven der fuldføres' })
+  @ApiResponse({
+    status: 200,
+    description: 'Opgaven blev markeret som udført.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Opgaven eller afviklingen blev ikke fundet.',
+  })
+  completeTask(
+    @Param('runId', ParseUUIDPipe) runId: string,
+    @Param('runTaskId', ParseUUIDPipe) runTaskId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.scenarioRunsService.completeTask(
+      runId,
+      runTaskId,
+      request.user.sub,
+    );
   }
 }

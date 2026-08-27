@@ -5,11 +5,12 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { ActivationMode } from '../../generated/prisma/enums';
 import { CreateScenarioDto } from './dto/create-scenario.dto';
 import { UpdateScenarioDto } from './dto/update-scenario.dto';
 import { AddScenarioTaskDto } from './dto/add-scenario-task.dto';
 import { AddTaskDependencyDto } from './dto/add-task-dependency.dto';
-import { UpdateScenarioTaskLocationDto } from './dto/update-scenario-task-location.dto';
+import { UpdateScenarioTaskActivationDto } from './dto/update-scenario-task-activation.dto';
 
 @Injectable()
 export class ScenariosService {
@@ -44,6 +45,7 @@ export class ScenariosService {
         scenarioTasks: {
           select: {
             id: true,
+            activationMode: true,
             latitude: true,
             longitude: true,
             radiusMeters: true,
@@ -81,14 +83,39 @@ export class ScenariosService {
   }
   //ADD TASK TO SCENARIO
   addTask(scenarioId: string, dto: AddScenarioTaskDto) {
+    const activationMode = dto.activationMode ?? ActivationMode.GEO;
+
+    if (activationMode === ActivationMode.GEO) {
+      if (
+        dto.latitude === undefined ||
+        dto.longitude === undefined ||
+        dto.radiusMeters === undefined
+      ) {
+        throw new BadRequestException(
+          'GEO-opgaver skal have latitude, longitude og radiusMeters',
+        );
+      }
+
+      if (dto.radiusMeters <= 0) {
+        throw new BadRequestException('radiusMeters skal være større end 0');
+      }
+    }
+
     return this.prisma.scenarioTask.create({
       data: {
         scenarioId,
         taskId: dto.taskId,
-        latitude: dto.latitude,
-        longitude: dto.longitude,
-        radiusMeters: dto.radiusMeters,
+
+        activationMode,
+
+        latitude: activationMode === ActivationMode.GEO ? dto.latitude : null,
+
+        longitude: activationMode === ActivationMode.GEO ? dto.longitude : null,
+
+        radiusMeters:
+          activationMode === ActivationMode.GEO ? dto.radiusMeters : null,
       },
+
       include: {
         task: true,
       },
@@ -148,11 +175,11 @@ export class ScenariosService {
       },
     });
   }
-  //UPDATE TASK LOCATION
-  async updateTaskLocation(
+  //UPDATE TASK ACTIVATION
+  async updateTaskActivation(
     scenarioId: string,
     scenarioTaskId: string,
-    dto: UpdateScenarioTaskLocationDto,
+    dto: UpdateScenarioTaskActivationDto,
   ) {
     const scenarioTask = await this.prisma.scenarioTask.findFirst({
       where: {
@@ -165,14 +192,38 @@ export class ScenariosService {
       throw new NotFoundException('Opgaven findes ikke i scenariet');
     }
 
+    if (dto.activationMode === ActivationMode.GEO) {
+      if (
+        dto.latitude === undefined ||
+        dto.longitude === undefined ||
+        dto.radiusMeters === undefined
+      ) {
+        throw new BadRequestException(
+          'GEO-opgaver skal have latitude, longitude og radiusMeters',
+        );
+      }
+
+      if (dto.radiusMeters <= 0) {
+        throw new BadRequestException('radiusMeters skal være større end 0');
+      }
+    }
+
     return this.prisma.scenarioTask.update({
       where: {
         id: scenarioTaskId,
       },
+
       data: {
-        latitude: dto.latitude,
-        longitude: dto.longitude,
-        radiusMeters: dto.radiusMeters,
+        activationMode: dto.activationMode,
+
+        latitude:
+          dto.activationMode === ActivationMode.GEO ? dto.latitude : null,
+
+        longitude:
+          dto.activationMode === ActivationMode.GEO ? dto.longitude : null,
+
+        radiusMeters:
+          dto.activationMode === ActivationMode.GEO ? dto.radiusMeters : null,
       },
     });
   }

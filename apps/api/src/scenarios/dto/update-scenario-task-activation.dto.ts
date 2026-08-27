@@ -2,13 +2,9 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import { ActivationMode } from '../../../generated/prisma/enums';
 
-export class AddScenarioTaskDto {
-  @ApiProperty()
-  taskId!: string;
-
+export class UpdateScenarioTaskActivationDto {
   @ApiProperty({
     enum: ActivationMode,
-    default: ActivationMode.GEO,
   })
   activationMode!: ActivationMode;
 

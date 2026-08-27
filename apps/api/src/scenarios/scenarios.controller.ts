@@ -21,7 +21,7 @@ import { CreateScenarioDto } from './dto/create-scenario.dto';
 import { UpdateScenarioDto } from './dto/update-scenario.dto';
 import { AddScenarioTaskDto } from './dto/add-scenario-task.dto';
 import { AddTaskDependencyDto } from './dto/add-task-dependency.dto';
-import { UpdateScenarioTaskLocationDto } from './dto/update-scenario-task-location.dto';
+import { UpdateScenarioTaskActivationDto } from './dto/update-scenario-task-activation.dto';
 import { UserRole } from '../../generated/prisma/enums';
 import { Roles } from '@/auth/decorators/roles.decorator';
 
@@ -122,9 +122,9 @@ export class ScenariosController {
   //UPDATE TASK LOCATION
   @Patch(':scenarioId/tasks/:scenarioTaskId/location')
   @ApiOperation({
-    summary: 'Opdater placering for en opgave',
+    summary: 'Opdater aktiverin for en opgave',
     description:
-      'Opdaterer den geografiske eller logiske placering for en specifik opgave.',
+      'Opdaterer hvordan en opgave frigives, og ved behov den geografiske eller logiske placering for en specifik opgave.',
   })
   @ApiParam({ name: 'scenarioId', description: 'UUID på scenariet' })
   @ApiParam({
@@ -133,19 +133,20 @@ export class ScenariosController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Opgavens placering blev opdateret.',
+    description: 'Opgavens aktivering blev opdateret.',
   })
   @ApiResponse({ status: 401, description: 'Ikke autoriseret.' })
   @ApiResponse({
     status: 404,
     description: 'Scenariet eller opgaven blev ikke fundet.',
   })
-  updateTaskLocation(
+  @Patch(':scenarioId/tasks/:scenarioTaskId/activation')
+  updateTaskActivation(
     @Param('scenarioId', ParseUUIDPipe) scenarioId: string,
     @Param('scenarioTaskId', ParseUUIDPipe) scenarioTaskId: string,
-    @Body() dto: UpdateScenarioTaskLocationDto,
+    @Body() dto: UpdateScenarioTaskActivationDto,
   ) {
-    return this.scenariosService.updateTaskLocation(
+    return this.scenariosService.updateTaskActivation(
       scenarioId,
       scenarioTaskId,
       dto,

@@ -3,14 +3,21 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
-import { TaskProgressStatus } from '../../generated/prisma/client';
+import {
+  ActivationMode,
+  TaskProgressStatus,
+  UserRole,
+  ScenarioRole,
+} from '../../generated/prisma/client';
 import { CreateScenarioRunDto } from './dto/create-scenario-run.dto';
 import { AddScenarioRunUserDto } from './dto/add-scenario-run-user.dto';
 import { RemoveScenarioRunUserDto } from './dto/remove-scenario-run-user.dto';
 import { UpdateScenarioRunUserDto } from './dto/update-scenario-run.user.dto';
+import { ActivateScenarioRunTaskDto } from './dto/activate-scenario-run-task.dto';
 
 @Injectable()
 export class ScenarioRunsService {
@@ -207,6 +214,7 @@ export class ScenarioRunsService {
     });
   }
   //START SCENARIORUN
+  //START SCENARIORUN
   async start(runId: string) {
     const scenarioRun = await this.prisma.scenarioRun.findUnique({
       where: {
@@ -253,6 +261,7 @@ export class ScenarioRunsService {
         'Scenariet skal være READY før afviklingen kan startes',
       );
     }
+
     //SNAPSHOTS MÅ IKKE FEJLE, VI VIL HAVE ALT ELLER INTET
     return this.prisma.$transaction(async (tx) => {
       const taskIdMap = new Map<string, string>();
@@ -270,6 +279,8 @@ export class ScenarioRunsService {
             instructions: scenarioTask.task.instructions,
             answerType: scenarioTask.task.answerType,
             taskTypeCode: scenarioTask.task.taskType.code,
+
+            activationMode: scenarioTask.activationMode,
 
             latitude: scenarioTask.latitude,
             longitude: scenarioTask.longitude,
@@ -312,6 +323,7 @@ export class ScenarioRunsService {
           });
         }
       }
+
       //UPDATE PROGRESS PÅ BRUGERE I SCENARIORUN
       const startedAt = new Date();
 
@@ -320,6 +332,7 @@ export class ScenarioRunsService {
         userId: string;
         status: TaskProgressStatus;
         availableAt: Date | null;
+        startedAt: Date | null;
       }[] = [];
 
       for (const runUser of scenarioRun.users) {
@@ -336,21 +349,35 @@ export class ScenarioRunsService {
 
           const hasDependencies = scenarioTask.dependencies.length > 0;
 
+          let status: TaskProgressStatus;
+          let availableAt: Date | null = null;
+          let taskStartedAt: Date | null = null;
+
+          if (hasDependencies) {
+            status = TaskProgressStatus.LOCKED;
+          } else if (scenarioTask.activationMode === ActivationMode.AUTOMATIC) {
+            status = TaskProgressStatus.ACTIVE;
+            availableAt = startedAt;
+            taskStartedAt = startedAt;
+          } else {
+            status = TaskProgressStatus.AVAILABLE;
+            availableAt = startedAt;
+          }
+
           progressRows.push({
             scenarioRunTaskId,
             userId: runUser.userId,
-
-            status: hasDependencies
-              ? TaskProgressStatus.LOCKED
-              : TaskProgressStatus.AVAILABLE,
-
-            availableAt: hasDependencies ? null : startedAt,
+            status,
+            availableAt,
+            startedAt: taskStartedAt,
           });
         }
       }
+
       await tx.scenarioRunTaskProgress.createMany({
         data: progressRows,
       });
+
       return tx.scenarioRun.update({
         where: {
           id: runId,
@@ -434,6 +461,12 @@ export class ScenarioRunsService {
 
         select: {
           scenarioRunTaskId: true,
+
+          scenarioRunTask: {
+            select: {
+              activationMode: true,
+            },
+          },
         },
       });
 
@@ -465,22 +498,238 @@ export class ScenarioRunsService {
         if (completedPrerequisites !== prerequisites.length) {
           continue;
         }
+        const activationMode = dependent.scenarioRunTask.activationMode;
 
-        await tx.scenarioRunTaskProgress.updateMany({
-          where: {
-            scenarioRunTaskId: dependent.scenarioRunTaskId,
-            userId,
-            status: TaskProgressStatus.LOCKED,
-          },
+        if (activationMode === ActivationMode.AUTOMATIC) {
+          await tx.scenarioRunTaskProgress.updateMany({
+            where: {
+              scenarioRunTaskId: dependent.scenarioRunTaskId,
+              userId,
+              status: TaskProgressStatus.LOCKED,
+            },
 
-          data: {
-            status: TaskProgressStatus.AVAILABLE,
-            availableAt: completedAt,
-          },
-        });
+            data: {
+              status: TaskProgressStatus.ACTIVE,
+              availableAt: completedAt,
+              startedAt: completedAt,
+            },
+          });
+        } else {
+          await tx.scenarioRunTaskProgress.updateMany({
+            where: {
+              scenarioRunTaskId: dependent.scenarioRunTaskId,
+              userId,
+              status: TaskProgressStatus.LOCKED,
+            },
+
+            data: {
+              status: TaskProgressStatus.AVAILABLE,
+              availableAt: completedAt,
+            },
+          });
+        }
+        return completedProgress;
       }
-
-      return completedProgress;
     });
   }
+  async activateTask(
+    runId: string,
+    runTaskId: string,
+    userId: string,
+    dto: ActivateScenarioRunTaskDto,
+  ) {
+    const scenarioRun = await this.prisma.scenarioRun.findUnique({
+      where: {
+        id: runId,
+      },
+    });
+
+    if (!scenarioRun) {
+      throw new NotFoundException('Scenarieafviklingen blev ikke fundet');
+    }
+
+    if (scenarioRun.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Scenarieafviklingen er ikke i gang');
+    }
+
+    const progress = await this.prisma.scenarioRunTaskProgress.findUnique({
+      where: {
+        scenarioRunTaskId_userId: {
+          scenarioRunTaskId: runTaskId,
+          userId,
+        },
+      },
+
+      include: {
+        scenarioRunTask: true,
+      },
+    });
+
+    if (!progress) {
+      throw new NotFoundException('Opgaven blev ikke fundet for denne bruger');
+    }
+
+    if (progress.scenarioRunTask.scenarioRunId !== runId) {
+      throw new BadRequestException(
+        'Opgaven tilhører ikke denne scenarieafvikling',
+      );
+    }
+    if (progress.scenarioRunTask.activationMode !== ActivationMode.GEO) {
+      throw new BadRequestException('Opgaven bruger ikke GPS-aktivering');
+    }
+    if (progress.status === TaskProgressStatus.ACTIVE) {
+      return progress;
+    }
+
+    if (progress.status !== TaskProgressStatus.AVAILABLE) {
+      throw new BadRequestException('Opgaven er ikke tilgængelig endnu');
+    }
+    const task = progress.scenarioRunTask;
+
+    if (
+      task.latitude === null ||
+      task.longitude === null ||
+      task.radiusMeters === null
+    ) {
+      throw new BadRequestException('GPS-opgaven mangler lokationsdata');
+    }
+
+    const taskLatitude = Number(task.latitude);
+    const taskLongitude = Number(task.longitude);
+    const radiusMeters = task.radiusMeters;
+
+    const distanceMeters = getDistanceMeters(
+      dto.latitude,
+      dto.longitude,
+      taskLatitude,
+      taskLongitude,
+    );
+
+    if (distanceMeters > radiusMeters) {
+      throw new BadRequestException(
+        `Du er ${Math.round(distanceMeters)} meter fra opgaven`,
+      );
+    }
+
+    const startedAt = new Date();
+
+    const updatedProgress = await this.prisma.scenarioRunTaskProgress.update({
+      where: {
+        scenarioRunTaskId_userId: {
+          scenarioRunTaskId: runTaskId,
+          userId,
+        },
+      },
+
+      data: {
+        status: TaskProgressStatus.ACTIVE,
+        startedAt,
+      },
+    });
+
+    return {
+      ...updatedProgress,
+      distanceMeters: Math.round(distanceMeters),
+      accuracyMeters: dto.accuracyMeters,
+    };
+  }
+  //AKTIVERING AF TASK MANUELT
+  async activateTaskManually(runId: string, runTaskId: string, userId: string) {
+    const runUser = await this.prisma.scenarioRunUser.findUnique({
+      where: {
+        scenarioRunId_userId: {
+          scenarioRunId: runId,
+          userId,
+        },
+      },
+
+      include: {
+        user: true,
+      },
+    });
+    const canActivate =
+      runUser?.role === ScenarioRole.INSTRUCTOR ||
+      runUser?.user.role === UserRole.ADMIN;
+
+    if (!canActivate) {
+      throw new ForbiddenException(
+        'Du har ikke adgang til at aktivere opgaven',
+      );
+    }
+    if (!runUser) {
+      throw new ForbiddenException(
+        'Du er ikke tilknyttet denne scenarieafvikling',
+      );
+    }
+
+    if (runUser.role !== 'INSTRUCTOR') {
+      throw new ForbiddenException(
+        'Kun en instruktør kan aktivere denne opgave',
+      );
+    }
+    const runTask = await this.prisma.scenarioRunTask.findFirst({
+      where: {
+        id: runTaskId,
+        scenarioRunId: runId,
+      },
+      include: {
+        scenarioRun: true,
+      },
+    });
+
+    if (!runTask) {
+      throw new NotFoundException('Opgaven blev ikke fundet');
+    }
+    if (runTask.scenarioRun.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Scenarieafviklingen er ikke i gang');
+    }
+    if (runTask.activationMode !== ActivationMode.MANUAL) {
+      throw new BadRequestException('Opgaven bruger ikke manuel aktivering');
+    }
+    const startedAt = new Date();
+
+    const result = await this.prisma.scenarioRunTaskProgress.updateMany({
+      where: {
+        scenarioRunTaskId: runTaskId,
+        status: TaskProgressStatus.AVAILABLE,
+      },
+
+      data: {
+        status: TaskProgressStatus.ACTIVE,
+        startedAt,
+      },
+    });
+
+    return {
+      activatedUsers: result.count,
+      startedAt,
+    };
+  }
+}
+
+//Hjælpefunktion som gør brug af Haversine-formlen
+function getDistanceMeters(
+  latitude1: number,
+  longitude1: number,
+  latitude2: number,
+  longitude2: number,
+) {
+  const earthRadiusMeters = 6_371_000;
+
+  const toRadians = (degrees: number) => degrees * (Math.PI / 180);
+
+  const lat1 = toRadians(latitude1);
+  const lat2 = toRadians(latitude2);
+
+  const deltaLatitude = toRadians(latitude2 - latitude1);
+
+  const deltaLongitude = toRadians(longitude2 - longitude1);
+
+  const a =
+    Math.sin(deltaLatitude / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLongitude / 2) ** 2;
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadiusMeters * c;
 }

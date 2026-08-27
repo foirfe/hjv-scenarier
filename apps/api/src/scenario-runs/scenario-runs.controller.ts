@@ -27,6 +27,7 @@ import type { AuthenticatedRequest } from '../auth/types/authenticated-request';
 import { ScenarioRunsService } from './scenario-runs.service';
 import { RemoveScenarioRunUserDto } from './dto/remove-scenario-run-user.dto';
 import { UpdateScenarioRunUserDto } from './dto/update-scenario-run.user.dto';
+import { ActivateScenarioRunTaskDto } from './dto/activate-scenario-run-task.dto';
 
 @ApiTags('scenario-runs')
 @ApiBearerAuth()
@@ -139,6 +140,34 @@ export class ScenarioRunsController {
     return this.scenarioRunsService.start(runId);
   }
 
+  @Patch(':runId/tasks/:runTaskId/activate')
+  @ApiOperation({
+    summary: 'Aktivere en opgave',
+    description: 'Aktiverer en opgave udfra GPS lokation.',
+  })
+  @ApiParam({
+    name: 'runId',
+    description: 'UUID på det scenario run der skal startes',
+  })
+  @ApiResponse({ status: 200, description: 'Scenario run er startet.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Scenario run kan ikke startes i sin nuværende tilstand.',
+  })
+  activateTask(
+    @Param('runId', ParseUUIDPipe) runId: string,
+    @Param('runTaskId', ParseUUIDPipe) runTaskId: string,
+    @Body() dto: ActivateScenarioRunTaskDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.scenarioRunsService.activateTask(
+      runId,
+      runTaskId,
+      request.user.sub,
+      dto,
+    );
+  }
+
   @Patch(':runId/tasks/:runTaskId/complete')
   @ApiOperation({
     summary: 'Marker en opgave som udført',
@@ -161,6 +190,35 @@ export class ScenarioRunsController {
     @Req() request: AuthenticatedRequest,
   ) {
     return this.scenarioRunsService.completeTask(
+      runId,
+      runTaskId,
+      request.user.sub,
+    );
+  }
+  @Patch(':runId/tasks/:runTaskId/activate-manual')
+  @ApiOperation({
+    summary: 'Aktivere en opgave',
+    description: 'Aktiverer en opgave manuelt hvis den opfylder alle krav.',
+  })
+  @ApiParam({
+    name: 'runId',
+    description: 'UUID på det scenario run ',
+  })
+  @ApiParam({
+    name: 'runTaskId',
+    description: 'UUID på den opgave der skal aktiveres',
+  })
+  @ApiResponse({ status: 200, description: 'Opgaven er aktiveret.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Opgaven kan ikke startes i sin nuværende tilstand.',
+  })
+  activateTaskManually(
+    @Param('runId', ParseUUIDPipe) runId: string,
+    @Param('runTaskId', ParseUUIDPipe) runTaskId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.scenarioRunsService.activateTaskManually(
       runId,
       runTaskId,
       request.user.sub,

@@ -54,6 +54,7 @@ export class ScenarioRunsService {
     });
   }
   async addUser(runId: string, dto: AddScenarioRunUserDto) {
+    await this.ensureRunIsEditable(runId);
     const scenarioRun = await this.prisma.scenarioRun.findUnique({
       where: {
         id: runId,
@@ -62,15 +63,6 @@ export class ScenarioRunsService {
 
     if (!scenarioRun) {
       throw new NotFoundException('Scenarieafviklingen blev ikke fundet');
-    }
-
-    if (
-      scenarioRun.status === 'COMPLETED' ||
-      scenarioRun.status === 'ABORTED'
-    ) {
-      throw new BadRequestException(
-        'Der kan ikke tilføjes brugere til en afsluttet scenarieafvikling',
-      );
     }
 
     const user = await this.prisma.user.findUnique({
@@ -174,6 +166,7 @@ export class ScenarioRunsService {
     userId: string,
     dto: UpdateScenarioRunUserDto,
   ) {
+    await this.ensureRunIsEditable(scenarioRunId);
     const scenarioRunUser = await this.prisma.scenarioRunUser.findUnique({
       where: {
         scenarioRunId_userId: {
@@ -204,6 +197,7 @@ export class ScenarioRunsService {
     scenarioRunId: string,
     dto: RemoveScenarioRunUserDto,
   ) {
+    await this.ensureRunIsEditable(scenarioRunId);
     return this.prisma.scenarioRunUser.delete({
       where: {
         scenarioRunId_userId: {
@@ -528,8 +522,8 @@ export class ScenarioRunsService {
             },
           });
         }
-        return completedProgress;
       }
+      return completedProgress;
     });
   }
   async activateTask(
@@ -704,6 +698,27 @@ export class ScenarioRunsService {
       activatedUsers: result.count,
       startedAt,
     };
+  }
+  //HJÆLPER FUNKTION SOM SIKKER AT MAN IKKE KAN MANIPULERE BRUGERE PÅ EN STARTED/INPROGRESS ELLER AFSLUTTET SCENARIE
+  private async ensureRunIsEditable(runId: string) {
+    const scenarioRun = await this.prisma.scenarioRun.findUnique({
+      where: {
+        id: runId,
+      },
+      select: {
+        status: true,
+      },
+    });
+
+    if (!scenarioRun) {
+      throw new NotFoundException('Scenarieafviklingen blev ikke fundet');
+    }
+
+    if (scenarioRun.status !== 'NOT_STARTED') {
+      throw new BadRequestException(
+        'Deltagere og roller kan kun ændres før scenarieafviklingen er startet',
+      );
+    }
   }
 }
 

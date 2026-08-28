@@ -208,7 +208,6 @@ export class ScenarioRunsService {
     });
   }
   //START SCENARIORUN
-  //START SCENARIORUN
   async start(runId: string) {
     const scenarioRun = await this.prisma.scenarioRun.findUnique({
       where: {
@@ -699,6 +698,131 @@ export class ScenarioRunsService {
       startedAt,
     };
   }
+  //FUNKTION TIL AT FINDE BRUGER MED ROLLE
+  async findMe(runId: string, userId: string) {
+    const runUser = await this.prisma.scenarioRunUser.findUnique({
+      where: {
+        scenarioRunId_userId: {
+          scenarioRunId: runId,
+          userId,
+        },
+      },
+      select: {
+        role: true,
+        scenarioRun: {
+          select: {
+            id: true,
+            status: true,
+            startedAt: true,
+            completedAt: true,
+            scenario: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+              },
+            },
+            tasks: {
+              orderBy: {
+                createdAt: 'asc',
+              },
+
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                instructions: true,
+                answerType: true,
+                taskTypeCode: true,
+                activationMode: true,
+
+                latitude: true,
+                longitude: true,
+                radiusMeters: true,
+
+                options: {
+                  orderBy: {
+                    sortOrder: 'asc',
+                  },
+
+                  select: {
+                    id: true,
+                    optionText: true,
+                    sortOrder: true,
+                  },
+                },
+
+                dependencies: {
+                  select: {
+                    prerequisiteRunTaskId: true,
+                  },
+                },
+
+                progress: {
+                  where: {
+                    userId,
+                  },
+
+                  select: {
+                    status: true,
+                    availableAt: true,
+                    startedAt: true,
+                    completedAt: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!runUser) {
+      throw new ForbiddenException(
+        'Du er ikke tilknyttet denne scenarieafvikling',
+      );
+    }
+    const run = runUser.scenarioRun;
+
+    return {
+      id: run.id,
+      status: run.status,
+      startedAt: run.startedAt,
+      completedAt: run.completedAt,
+
+      role: runUser.role,
+
+      scenario: run.scenario,
+
+      tasks: run.tasks.map((task) => {
+        const progress = task.progress[0] ?? null;
+
+        return {
+          id: task.id,
+          name: task.name,
+          description: task.description,
+          instructions: task.instructions,
+          answerType: task.answerType,
+          taskTypeCode: task.taskTypeCode,
+
+          activationMode: task.activationMode,
+
+          latitude: task.latitude,
+          longitude: task.longitude,
+          radiusMeters: task.radiusMeters,
+
+          status: progress?.status ?? null,
+          availableAt: progress?.availableAt ?? null,
+          startedAt: progress?.startedAt ?? null,
+          completedAt: progress?.completedAt ?? null,
+
+          options: task.options,
+
+          dependencies: task.dependencies,
+        };
+      }),
+    };
+  }
   //HJÆLPER FUNKTION SOM SIKKER AT MAN IKKE KAN MANIPULERE BRUGERE PÅ EN STARTED/INPROGRESS ELLER AFSLUTTET SCENARIE
   private async ensureRunIsEditable(runId: string) {
     const scenarioRun = await this.prisma.scenarioRun.findUnique({
@@ -713,7 +837,6 @@ export class ScenarioRunsService {
     if (!scenarioRun) {
       throw new NotFoundException('Scenarieafviklingen blev ikke fundet');
     }
-
     if (scenarioRun.status !== 'NOT_STARTED') {
       throw new BadRequestException(
         'Deltagere og roller kan kun ændres før scenarieafviklingen er startet',

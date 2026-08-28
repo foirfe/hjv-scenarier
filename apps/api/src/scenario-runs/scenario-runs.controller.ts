@@ -105,12 +105,26 @@ export class ScenarioRunsController {
   ) {
     return this.scenarioRunsService.removeScenarioRunUser(runId, dto);
   }
+  //GET ME
+  @Get(':runId/me')
+  @ApiOperation({
+    summary: 'Hent min scenario run',
+    description:
+      'Henter scenario run, rolle og task-progress for den indloggede bruger.',
+  })
+  findMe(
+    @Param('runId', ParseUUIDPipe) runId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.scenarioRunsService.findMe(runId, request.user.sub);
+  }
   //GET Scenario Run
   @Get(':runId')
+  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Hent et scenario run',
     description:
-      'Henter detaljeret information samt status for et specifikt scenario run.',
+      'Henter detaljeret information samt status for et specifikt scenario run. Kræver ADMIN-rolle',
   })
   @ApiParam({ name: 'runId', description: 'UUID på det ønskede scenario run' })
   @ApiResponse({

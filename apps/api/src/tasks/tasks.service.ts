@@ -13,6 +13,11 @@ export class TasksService {
         taskType: true,
         environment: true,
         options: true,
+        _count: {
+          select: {
+            scenarioTasks: true,
+          },
+        },
       },
     });
   }
@@ -42,5 +47,24 @@ export class TasksService {
     return this.prisma.task.delete({
       where: { id },
     });
+  }
+  async getFormOptions() {
+    const [environments, taskTypes] = await Promise.all([
+      this.prisma.environment.findMany({
+        orderBy: {
+          name: 'asc',
+        },
+      }),
+      this.prisma.taskType.findMany({
+        orderBy: {
+          name: 'asc',
+        },
+      }),
+    ]);
+
+    return {
+      environments,
+      taskTypes,
+    };
   }
 }

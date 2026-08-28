@@ -1,0 +1,99 @@
+/*TASKPAGE*/
+.tasksPage {
+  min-height: 100vh;
+}
+.tasksHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px 32px;
+  background: white;
+  border-bottom: 1px solid #ddd;
+}
+.tasksHeader h1 {
+  margin: 4px 0;
+  font-size: 2rem;
+}
+.tasksHeader p {
+  margin: 0;
+}
+.tasksHeaderActions {
+  display: flex;
+  gap: 8px;
+}
+.tasksStatusTabs {
+  display: flex;
+  gap: 32px;
+  padding: 0 32px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tasksStatusTabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.95rem;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tasksStatusTabs button:hover {
+  color: #111827;
+}
+
+.tasksStatusTabs button.active {
+  color: #0f172a;
+  border-bottom-color: var(--color-muted);
+  font-weight: 500;
+}
+
+.tasksStatusTabs button span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 9999px;
+  background-color: #e5e7eb;
+  color: #4b5563;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.tasksToolbar {
+  display: flex;
+  gap: 10px;
+  padding: 12px 32px;
+  background: white;
+}
+.tasksToolbar input {
+  width: 330px;
+}
+.tasksToolbar input,
+.tasksToolbar select {
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+.tasksContent {
+  padding: 20px 32px;
+}
+.tasksContent table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+.tasksContent th,
+.tasksContent td {
+  padding: 14px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+.tasksContent th {
+  font-weight: 500;
+}

@@ -1,12 +1,13 @@
 import { Outlet } from "react-router";
 import Sidebar from "../components/Sidebar";
+import styles from "./ManagementLayout.module.css"
 
 export default function ManagementLayout() {
   return (
-    <div className="management-layout">
+    <div className={styles.managementLayout}>
       <Sidebar />
 
-      <main className="management-content">
+      <main className={styles.managementContent}>
         <Outlet />
       </main>
     </div>

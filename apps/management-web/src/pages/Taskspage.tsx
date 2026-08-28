@@ -1,94 +1,114 @@
 import PageHeader from "../components/Pageheader"
-import { useState } from "react";
+import CreateTaskDrawer from "../components/tasks/CreateTaskDrawer";
+import { useEffect, useState } from "react";
+import { apiFetch } from "../api/apiFetch";
+import styles from "./TasksPage.module.css"
 
-//DUMMY DATA
+
+type TaskStatus = "ACTIVE" | "DRAFT" | "ARCHIVED";
 type Task = {
   id: string;
   name: string;
-  type: string;
-  environment: string;
-  description: string;
-  scenarios: number;
-  status: string;
+  description: string | null;
+  instructions: string;
+  status: TaskStatus;
+  answerType: string | null;
+  environment: {
+    id: number;
+    name: string;
+  };
+  taskType: {
+    id: number;
+    code: string;
+    name: string;
+  };
+  _count: {
+    scenarioTasks: number;
+  };
+
+  createdAt: string;
   updatedAt: string;
 };
-const tasks: Task[] = [
-  {
-    id: "T-005",
-    name: "Observation - ukendt fartøj",
-    type: "Observation",
-    environment: "Kyst",
-    description: "Rapportering og dokumentation ved observation af uidentificeret fartøj.",
-    scenarios: 8,
-    status: "active",
-    updatedAt: "05. apr. 2025",
-  },
-  {
-    id: "T-003",
-    name: "Førstehjælp - bevidstløs",
-    type: "Procedureøvelse",
-    environment: "Maritim",
-    description: "Vurdering og behandling af bevidstløs person om bord.",
-    scenarios: 7,
-    status: "active",
-    updatedAt: "12. mar. 2025",
-  },
-  {
-    id: "T-007",
-    name: "Havnekontrol - ankerkontrol",
-    type: "Tjekliste",
-    environment: "Havn",
-    description: "Systematisk gennemgang af ankrede fartøjer.",
-    scenarios: 0,
-    status: "draft",
-    updatedAt: "01. mar. 2025",
-  },
-];
-//DUMMY DATA END
-
 
 export default function TasksPage() {
-    const [search, setSearch] = useState("");
-    const [environment, setEnvironment] = useState("");
-    const [taskType, setTaskType] = useState("");
-    const [taskStatus, setTaskStatus] = useState("")
+const [tasks, setTasks] = useState<Task[]>([]);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState("");
+const [createOpen, setCreateOpen] = useState(false);
 
+const [search, setSearch] = useState("");
+const [environment, setEnvironment] = useState("");
+const [taskType, setTaskType] = useState("");
+const [taskStatus, setTaskStatus] =
+  useState<"" | TaskStatus>("");
+
+useEffect(() => {
+    let isMounted = true;
+    async function loadTasks() {
+      try {
+        setLoading(true);
+        setError("");
+        const data = await apiFetch<Task[]>("/tasks");
+        if (isMounted) {
+          setTasks(data);
+        }
+      } catch {
+        if (isMounted) {
+          setError("Kunne ikke hente opgaver");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+    loadTasks();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 //FILTER OG SØGNING 
-const filteredTasks = tasks.filter((task)=>{
-    const value = search.toLowerCase();
-    
-    const matchesSearch =
-        task.name.toLowerCase().includes(value) ||
-        task.description.toLowerCase().includes(value) ||
-        task.environment.toLowerCase().includes(value);
+const filteredTasks = tasks.filter((task) => {
+  const value = search.toLowerCase();
+  const matchesSearch =
+    task.name.toLowerCase().includes(value) ||
+    (task.description?.toLowerCase().includes(value) ?? false) ||
+    task.environment.name.toLowerCase().includes(value);
 
-        const matchesEnvironment =
-        environment === "" || task.environment === environment;
+  const matchesEnvironment =
+    environment === "" ||
+    task.environment.name === environment;
 
-        const matchesTaskType =
-        taskType === "" || task.type === taskType;
+  const matchesTaskType =
+    taskType === "" ||
+    task.taskType.name === taskType;
 
-        const matchesStatus = 
-        taskStatus === "" || task.status === taskStatus;
-        
-        return matchesSearch && matchesEnvironment && matchesTaskType && matchesStatus;
-}
-)
+  const matchesStatus =
+    taskStatus === "" ||
+    task.status === taskStatus;
+
+  return (
+    matchesSearch &&
+    matchesEnvironment &&
+    matchesTaskType &&
+    matchesStatus
+  );
+});
     return(
-        <div className="tasks-page">
+        <div className={styles.tasksPage}>
         <PageHeader
             title="Opgaver"
             description="Administrér genanvendelige opgaveskabeloner til øvelsesscenarier"
             actions={
                 <>
                 <button>Importer Excel</button>
-                <button>+ Ny Opgave</button>
+                <button onClick={() => setCreateOpen(true)}>+ Ny Opgave</button>
                 </>
             }
         />
-    <section className="tasks-status-tabs">
+<section className={styles.tasksStatusTabs}>
   <button
-    className={status === "" ? "active" : ""}
+    className={taskStatus === "" ? styles.active : ""}
     onClick={() => setTaskStatus("")}
   >
     Alle opgaver
@@ -96,31 +116,31 @@ const filteredTasks = tasks.filter((task)=>{
   </button>
 
   <button
-    className={status === "active" ? "active" : ""}
-    onClick={() => setTaskStatus("active")}
+    className={taskStatus === "ACTIVE" ? styles.active : ""}
+    onClick={() => setTaskStatus("ACTIVE")}
   >
     Aktive
-    <span>{tasks.filter((task) => task.status === "active").length}</span>
+    <span>{tasks.filter((task) => task.status === "ACTIVE").length}</span>
   </button>
 
   <button
-    className={status === "draft" ? "active" : ""}
-    onClick={() => setTaskStatus("draft")}
+    className={taskStatus === "DRAFT" ? styles.active : ""}
+    onClick={() => setTaskStatus("DRAFT")}
   >
     Kladder
-    <span>{tasks.filter((task) => task.status === "draft").length}</span>
+    <span>{tasks.filter((task) => task.status === "DRAFT").length}</span>
   </button>
 
   <button
-    className={status === "archived" ? "active" : ""}
-    onClick={() => setTaskStatus("archived")}
+    className={taskStatus === "ARCHIVED" ? styles.active : ""}
+    onClick={() => setTaskStatus("ARCHIVED")}
   >
     Arkiverede
-    <span>{tasks.filter((task) => task.status === "archived").length}</span>
+    <span>{tasks.filter((task) => task.status === "ARCHIVED").length}</span>
   </button>
 </section>
 
-      <section className="tasks-toolbar">
+      <section className={styles.tasksToolbar}>
         <input
           type="search"
           placeholder="Søg på navn, beskrivelse eller miljø..."
@@ -149,49 +169,68 @@ const filteredTasks = tasks.filter((task)=>{
         </select>
       </section>
 
-      <section className="tasks-content">
-            <span>{filteredTasks.length > 1 ?  filteredTasks.length + " resultater" : "1 resultat"}</span>
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Navn</th>
-              <th>Miljø</th>
-              <th>Beskrivelse</th>
-              <th>Scenarier</th>
-              <th>Status</th>
-              <th>Ændret</th>
-            </tr>
-          </thead>
+      <section className={styles.tasksContent}>
+        {loading && <p>Henter opgaver...</p>}
+        {error && <p className="error-message">{error}</p>}
 
-<tbody>
-  {filteredTasks.length > 0 ? (
-    filteredTasks.map((task) => (
-      <tr key={task.id}>
-        <td>{task.id}</td>
-
-        <td>
-          <strong>{task.name}</strong>
-          <div>{task.type}</div>
-        </td>
-
-        <td>{task.environment}</td>
-        <td>{task.description}</td>
-        <td>{task.scenarios || "—"}</td>
-        <td>{task.status}</td>
-        <td>{task.updatedAt}</td>
-      </tr>
-    ))
-  ) : (
-    <tr>
-      <td colSpan={7}>
-        Ingen opgaver matcher dine filtre.
-      </td>
-    </tr>
-  )}
-</tbody>
-        </table>
+        {!loading && !error && (
+          <>
+            <span>
+              {filteredTasks.length === 1
+                ? "1 resultat"
+                : `${filteredTasks.length} resultater`}
+            </span>
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Navn</th>
+                  <th>Miljø</th>
+                  <th>Beskrivelse</th>
+                  <th>Scenarier</th>
+                  <th>Status</th>
+                  <th>Ændret</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredTasks.length > 0 ? (
+                  filteredTasks.map((task) => (
+                    <tr key={task.id}>
+                      <td>{task.id.slice(0, 8)}</td>
+                      <td>
+                        <strong>{task.name}</strong>
+                        <div>{task.taskType.name}</div>
+                      </td>
+                      <td>{task.environment.name}</td>
+                      <td>{task.description ?? "N/A"}</td>
+                      <td>{task._count.scenarioTasks || "N/A"}</td>
+                      <td>{task.status}</td>
+                      <td>
+                        {new Intl.DateTimeFormat("da-DK", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        }).format(new Date(task.updatedAt))}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7}>Ingen opgaver matcher dine filtre.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </>
+        )}
       </section>
+      <CreateTaskDrawer
+  open={createOpen}
+  onClose={() => setCreateOpen(false)}
+  onCreated={() => {
+    setCreateOpen(false);
+  }}
+/>
     </div>
   );
 }

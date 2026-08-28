@@ -1,0 +1,9 @@
+.managementLayout {
+  min-height: 100vh;
+  display: flex;
+}
+
+.managementContent {
+  flex: 1;
+  background: #f3f4f1;
+}

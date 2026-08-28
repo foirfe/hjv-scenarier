@@ -42,7 +42,14 @@ export class TasksController {
   findAll() {
     return this.tasksService.findAll();
   }
-
+  @Get('form-options')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Hent valgmuligheder til opgaveformular',
+  })
+  getFormOptions() {
+    return this.tasksService.getFormOptions();
+  }
   @Get(':id')
   @ApiOperation({
     summary: 'Hent en specifik opgave',

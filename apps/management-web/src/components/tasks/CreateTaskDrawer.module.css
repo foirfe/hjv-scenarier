@@ -171,9 +171,71 @@
   color: #8d2525;
 }
 
-.formHint {
-  color: #666;
+.optionsEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.optionsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.optionsHeader span {
+  color: #707670;
+  font-size: 0.8rem;
+}
+
+.optionRow {
+  display: grid;
+  grid-template-columns: 26px 1fr auto 32px;
+  gap: 8px;
+  align-items: center;
+}
+
+.optionRow > input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #c8cbc6;
+  background: #f5f6f3;
+  font: inherit;
+}
+
+.optionNumber {
+  color: #707670;
+  text-align: center;
+}
+
+.correctOption {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 0.85rem;
+}
+
+.removeOption {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.removeOption:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.addOption {
+  align-self: flex-start;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
 }
 
 @media (max-width: 600px) {

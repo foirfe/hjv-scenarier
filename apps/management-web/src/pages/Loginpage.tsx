@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { Navigate, useNavigate } from "react-router";
 import { useAuth } from "../auth/useAuth";
 
@@ -13,7 +13,7 @@ export default function LoginPage() {
     return <Navigate to="/overview" replace />;
   }
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
 
     setError("");

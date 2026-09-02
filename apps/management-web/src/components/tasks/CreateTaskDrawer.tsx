@@ -25,6 +25,12 @@ type FormOptions = {
   taskTypes: TaskType[];
 };
 
+type TaskOptionDraft = {
+  id: string;
+  optionText: string;
+  isCorrect: boolean;
+};
+
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -61,6 +67,19 @@ export default function CreateTaskDrawer({
 
   const isQuiz = selectedTaskType?.code === "QUIZ";
 
+  const [options, setOptions] = useState<TaskOptionDraft[]>([
+    {
+      id: crypto.randomUUID(),
+      optionText: "",
+      isCorrect: false,
+    },
+    {
+      id: crypto.randomUUID(),
+      optionText: "",
+      isCorrect: false,
+    },
+  ]);
+
   useEffect(() => {
     if (!open) return;
 
@@ -77,7 +96,49 @@ export default function CreateTaskDrawer({
 
     void loadOptions();
   }, [open]);
-
+  //OPTIONS FUNKTIONER
+  function addOption() {
+    setOptions((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        optionText: "",
+        isCorrect: false,
+      },
+    ]);
+  }
+  function updateOptionText(
+    id: string,
+    optionText: string,
+  ) {
+    setOptions((current) =>
+      current.map((option) =>
+        option.id === id
+          ? {
+            ...option,
+            optionText,
+          }
+          : option,
+      ),
+    );
+  }
+  function toggleOptionCorrect(id: string) {
+    setOptions((current) =>
+      current.map((option) =>
+        option.id === id
+          ? {
+            ...option,
+            isCorrect: !option.isCorrect,
+          }
+          : option,
+      ),
+    );
+  }
+  function removeOption(id: string) {
+    setOptions((current) =>
+      current.filter((option) => option.id !== id),
+    );
+  }
   useEffect(() => {
     if (!open) return;
 
@@ -102,6 +163,18 @@ export default function CreateTaskDrawer({
     setTaskTypeId("");
     setStatus("ACTIVE");
     setAnswerType("MULTIPLE_CHOICE");
+    setOptions([
+      {
+        id: crypto.randomUUID(),
+        optionText: "",
+        isCorrect: false,
+      },
+      {
+        id: crypto.randomUUID(),
+        optionText: "",
+        isCorrect: false,
+      },
+    ]);
     setError("");
   }
 
@@ -135,8 +208,26 @@ export default function CreateTaskDrawer({
 
           ...(isQuiz
             ? {
-                answerType,
-              }
+              answerType,
+
+              ...(answerType === "MULTIPLE_CHOICE"
+                ? {
+                  options: options
+                    .filter(
+                      (option) =>
+                        option.optionText.trim() !== "",
+                    )
+                    .map((option, index) => ({
+                      optionText:
+                        option.optionText.trim(),
+
+                      isCorrect: option.isCorrect,
+
+                      sortOrder: index,
+                    })),
+                }
+                : {}),
+            }
             : {}),
         }),
       });
@@ -155,7 +246,7 @@ export default function CreateTaskDrawer({
   }
 
   return (
-      <div className={styles.drawerLayer}>
+    <div className={styles.drawerLayer}>
       <button
         type="button"
         className={styles.drawerBackdrop}
@@ -165,12 +256,12 @@ export default function CreateTaskDrawer({
 
       <aside className={styles.drawer}>
         <form
-           className={styles.drawerForm}
+          className={styles.drawerForm}
           onSubmit={handleSubmit}
         >
           <header className={styles.drawerHeader}>
             <h2>Opret ny opgave</h2>
-             <div className={styles.drawerActions}>
+            <div className={styles.drawerActions}>
               <button
                 type="submit"
                 disabled={saving}
@@ -405,11 +496,67 @@ export default function CreateTaskDrawer({
                       Ja/Nej
                     </label>
                   </div>
-
                   {answerType === "MULTIPLE_CHOICE" && (
-                    <p className={styles.formHint}>
-                      Kommer senere!.
-                    </p>
+                    <div className={styles.optionsEditor}>
+                      <div className={styles.optionsHeader}>
+                        <strong>Svarmuligheder</strong>
+
+                        <span>Markér korrekte svar</span>
+                      </div>
+
+                      {options.map((option, index) => (
+                        <div
+                          key={option.id}
+                          className={styles.optionRow}
+                        >
+                          <span className={styles.optionNumber}>
+                            {index + 1}
+                          </span>
+
+                          <input
+                            type="text"
+                            value={option.optionText}
+                            placeholder={`Svarmulighed ${index + 1}`}
+                            onChange={(event) =>
+                              updateOptionText(
+                                option.id,
+                                event.target.value,
+                              )
+                            }
+                          />
+
+                          <label className={styles.correctOption}>
+                            <input
+                              type="checkbox"
+                              checked={option.isCorrect}
+                              onChange={() =>
+                                toggleOptionCorrect(option.id)
+                              }
+                            />
+
+                            Korrekt
+                          </label>
+
+                          <button
+                            type="button"
+                            onClick={() => removeOption(option.id)}
+                            disabled={options.length <= 2}
+                            className={styles.removeOption}
+                            aria-label="Fjern svarmulighed"
+                          >
+                            x
+                          </button>
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={addOption}
+                        className={styles.addOption}
+                      >
+                        + Tilføj svarmulighed
+                      </button>
+                    </div>
                   )}
                 </section>
               </>

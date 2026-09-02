@@ -32,15 +32,61 @@ export class TasksService {
 
     return task;
   }
-  create(createTaskDto: CreateTaskDto) {
+  create(dto: CreateTaskDto) {
+    const { options, ...taskData } = dto;
+
     return this.prisma.task.create({
-      data: createTaskDto,
+      data: {
+        ...taskData,
+
+        ...(options?.length
+          ? {
+              options: {
+                create: options,
+              },
+            }
+          : {}),
+      },
+
+      include: {
+        environment: true,
+        taskType: true,
+        options: {
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
+      },
     });
   }
   update(id: string, dto: UpdateTaskDto) {
+    const { options, ...taskData } = dto;
+
     return this.prisma.task.update({
       where: { id },
-      data: dto,
+
+      data: {
+        ...taskData,
+
+        ...(options !== undefined
+          ? {
+              options: {
+                deleteMany: {},
+                create: options,
+              },
+            }
+          : {}),
+      },
+
+      include: {
+        environment: true,
+        taskType: true,
+        options: {
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
+      },
     });
   }
   remove(id: string) {

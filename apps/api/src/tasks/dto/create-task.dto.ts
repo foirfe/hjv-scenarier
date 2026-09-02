@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AnswerType, TaskStatus } from '../../../generated/prisma/client';
+import { CreateTaskOptionDto } from './create-task-option.dto';
 
 export class CreateTaskDto {
   @ApiProperty({
@@ -37,4 +38,9 @@ export class CreateTaskDto {
     enum: AnswerType,
   })
   answerType?: AnswerType;
+
+  @ApiPropertyOptional({
+    type: [CreateTaskOptionDto],
+  })
+  options?: CreateTaskOptionDto[];
 }

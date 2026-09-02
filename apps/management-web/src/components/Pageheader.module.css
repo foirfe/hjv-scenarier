@@ -1,0 +1,11 @@
+.pageHeader{
+   padding: var(--spacing-md);
+   display: flex;
+   justify-content: space-between;
+}
+.titleDescription{
+   width: 100%;
+}
+.actions{
+   width: 100%;
+}

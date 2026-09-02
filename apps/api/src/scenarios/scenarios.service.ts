@@ -27,7 +27,19 @@ export class ScenariosService {
   }
   //GET ALL SCENARIOS
   findAll() {
-    return this.prisma.scenario.findMany();
+    return this.prisma.scenario.findMany({
+      include: {
+        _count: {
+          select: {
+            scenarioTasks: true,
+          },
+        },
+      },
+
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
   }
   //GET ONE SCENARIO
   async findOne(id: string) {

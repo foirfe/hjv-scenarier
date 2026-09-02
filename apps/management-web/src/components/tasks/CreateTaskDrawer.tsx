@@ -277,13 +277,7 @@ export default function CreateTaskDrawer({
           <header className={styles.drawerHeader}>
             <h2>Opret ny opgave</h2>
             <div className={styles.drawerActions}>
-              <button
-                type="submit"
-                disabled={saving}
-                className={styles.primaryButton}
-              >
-                {saving ? "Opretter..." : "Opret opgave"}
-              </button>
+
 
               <button
                 type="button"
@@ -576,6 +570,13 @@ export default function CreateTaskDrawer({
                 </section>
               </>
             )}
+            <button
+              type="submit"
+              disabled={saving}
+              className={styles.primaryButton}
+            >
+              {saving ? "Opretter..." : "Opret opgave"}
+            </button>
           </div>
         </form>
       </aside>

@@ -122,10 +122,10 @@ export default function TasksPage() {
         title="Opgaver"
         description="Administrér genanvendelige opgaveskabeloner til øvelsesscenarier"
         actions={
-          <>
-            <button>Importer Excel</button>
-            <button onClick={() => setCreateOpen(true)}>+ Ny Opgave</button>
-          </>
+          <div className={styles.actionButtons}>
+            <button className={styles.importButton}>Importer Excel</button>
+            <button className={styles.createButton} onClick={() => setCreateOpen(true)}>+ Ny Opgave</button>
+          </div>
         }
       />
       <section className={styles.tasksStatusTabs}>
@@ -202,10 +202,9 @@ export default function TasksPage() {
                 ? "1 resultat"
                 : `${filteredTasks.length} resultater`}
             </span>
-            <table>
+            <table className={styles.tableWrapper}>
               <thead>
                 <tr>
-                  <th>ID</th>
                   <th>Navn</th>
                   <th>Miljø</th>
                   <th>Beskrivelse</th>
@@ -219,15 +218,19 @@ export default function TasksPage() {
                 {filteredTasks.length > 0 ? (
                   filteredTasks.map((task) => (
                     <tr key={task.id}>
-                      <td>{task.id.slice(0, 8)}</td>
                       <td>
                         <strong>{task.name}</strong>
                         <div>{task.taskType.name}</div>
                       </td>
                       <td>{task.environment.name}</td>
-                      <td>{task.description ?? "N/A"}</td>
+                      <td className={styles.taskDescription}>{task.description ?? "N/A"}</td>
                       <td>{task._count.scenarioTasks || "N/A"}</td>
-                      <td>{task.status}</td>
+                      <td>  
+                      <span
+                        className={`${styles.statusBadge} ${task.status === "ACTIVE" ? styles.statusActive:task.status === "ARCHIVED" ? styles.statusArchived  : styles.statusDraft }`}>                        
+                                  {task.status === "ACTIVE" ? "Aktiv" : task.status === "ARCHIVED" ? "Arkiveret": "Kladde"}
+                        </span>
+                        </td>
                       <td>
                         {new Intl.DateTimeFormat("da-DK", {
                           day: "2-digit",
@@ -237,6 +240,7 @@ export default function TasksPage() {
                       </td>
                       <td>
                         <button
+                        className={styles.editButton}
                           onClick={() => setEditTaskId(task.id)}
                         >
                           Redigér

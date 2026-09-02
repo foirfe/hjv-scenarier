@@ -23,48 +23,48 @@
 }
 .tasksStatusTabs {
   display: flex;
-  gap: 32px;
-  padding: 0 32px;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
+  gap: var(--spacing-xl);
+  padding: 0 var(--spacing-xl);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .tasksStatusTabs button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 0;
-  background: transparent;
-  border: none;
+  gap: var(--spacing-sm);
+  padding: 13px 0;
+  border: 0;
   border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--color-muted);
+  font: inherit;
   font-size: 0.95rem;
-  color: #4b5563;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .tasksStatusTabs button:hover {
-  color: #111827;
+   color: var(--color-text);
 }
 
 .tasksStatusTabs button.active {
-  color: #0f172a;
-  border-bottom-color: var(--color-muted);
-  font-weight: 500;
+  color: var(--color-text);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
 }
 
 .tasksStatusTabs button span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 9999px;
-  background-color: #e5e7eb;
-  color: #4b5563;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #e8eae7;
+  color: var(--color-muted);
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 .tasksToolbar {
   display: flex;
@@ -90,10 +90,104 @@
 }
 .tasksContent th,
 .tasksContent td {
-  padding: 14px;
+  padding: 14px 16px;
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border);
 }
 .tasksContent th {
+  background: #f8f9f7;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+}
+.editButton {
+  padding: 7px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.editButton:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.statusDraft {
+  background: #f0f1ef;
+  color: #5f6662;
+}
+
+.statusActive {
+  background: #e3f1eb;
+  color: #245f4f;
+}
+
+.statusArchived {
+  background: #ececec;
+  color: #666;
+}
+
+.taskDescription {
+  max-width: 420px;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+.actionButtons{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.createButton {
+  padding: 10px 16px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-small);
+  background: var(--color-primary);
+  color: white;
+  font: inherit;
   font-weight: 500;
+  cursor: pointer;
+  margin-left: 0.25%;
+}
+
+.createButton:hover {
+  opacity: 0.92;
+}
+
+.importButton{
+  padding: 10px 16px;
+  border: 1px solid var(--color-muted);
+  border-radius: var(--radius-small);
+  background: var(--color-background);
+  color: var(--color-muted);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  margin-right: 0.25%;
+}
+
+.importButton:hover{
+  opacity: 0.92;
 }

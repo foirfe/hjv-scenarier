@@ -24,6 +24,20 @@ export class TasksService {
   async findOne(id: string) {
     const task = await this.prisma.task.findUnique({
       where: { id },
+      include: {
+        environment: true,
+        taskType: true,
+        options: {
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
+        _count: {
+          select: {
+            scenarioTasks: true,
+          },
+        },
+      },
     });
 
     if (!task) {

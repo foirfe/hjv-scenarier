@@ -1,6 +1,7 @@
 import PageHeader from "../components/Pageheader"
 import CreateTaskDrawer from "../components/tasks/CreateTaskDrawer";
-import { useEffect, useState } from "react";
+import EditTaskDrawer from "../components/tasks/EditTaskDrawer";
+import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "../api/apiFetch";
 import styles from "./TasksPage.module.css"
 
@@ -31,138 +32,159 @@ type Task = {
 };
 
 export default function TasksPage() {
-const [tasks, setTasks] = useState<Task[]>([]);
-const [loading, setLoading] = useState(true);
-const [error, setError] = useState("");
-const [createOpen, setCreateOpen] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
 
-const [search, setSearch] = useState("");
-const [environment, setEnvironment] = useState("");
-const [taskType, setTaskType] = useState("");
-const [taskStatus, setTaskStatus] =
-  useState<"" | TaskStatus>("");
+  const [search, setSearch] = useState("");
+  const [environment, setEnvironment] = useState("");
+  const [taskType, setTaskType] = useState("");
+  const [taskStatus, setTaskStatus] =
+    useState<"" | TaskStatus>("");
+  const [editTaskId, setEditTaskId] =
+    useState<string | null>(null);
 
-useEffect(() => {
+  const getTasksData = useCallback(async () => {
+    return await apiFetch<Task[]>("/tasks");
+  }, []);
+
+  const refreshTasks = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const data = await getTasksData();
+      setTasks(data);
+    } catch {
+      setError("Kunne ikke hente opgaver");
+    } finally {
+      setLoading(false);
+    }
+  }, [getTasksData]);
+
+  useEffect(() => {
     let isMounted = true;
-    async function loadTasks() {
-      try {
-        setLoading(true);
-        setError("");
-        const data = await apiFetch<Task[]>("/tasks");
+    getTasksData()
+      .then((data) => {
         if (isMounted) {
           setTasks(data);
+          setError("");
         }
-      } catch {
+      })
+      .catch(() => {
         if (isMounted) {
           setError("Kunne ikke hente opgaver");
         }
-      } finally {
+      })
+      .finally(() => {
         if (isMounted) {
           setLoading(false);
         }
-      }
-    }
-    loadTasks();
+      });
     return () => {
       isMounted = false;
     };
-  }, []);
-//FILTER OG SØGNING 
-const filteredTasks = tasks.filter((task) => {
-  const value = search.toLowerCase();
-  const matchesSearch =
-    task.name.toLowerCase().includes(value) ||
-    (task.description?.toLowerCase().includes(value) ?? false) ||
-    task.environment.name.toLowerCase().includes(value);
+  }, [getTasksData]);
+  const handleCreated = () => {
+    setCreateOpen(false);
+    refreshTasks();
+  };
+  //FILTER OG SØGNING 
+  const filteredTasks = tasks.filter((task) => {
+    const value = search.toLowerCase();
+    const matchesSearch =
+      task.name.toLowerCase().includes(value) ||
+      (task.description?.toLowerCase().includes(value) ?? false) ||
+      task.environment.name.toLowerCase().includes(value);
 
-  const matchesEnvironment =
-    environment === "" ||
-    task.environment.name === environment;
+    const matchesEnvironment =
+      environment === "" ||
+      task.environment.name === environment;
 
-  const matchesTaskType =
-    taskType === "" ||
-    task.taskType.name === taskType;
+    const matchesTaskType =
+      taskType === "" ||
+      task.taskType.name === taskType;
 
-  const matchesStatus =
-    taskStatus === "" ||
-    task.status === taskStatus;
+    const matchesStatus =
+      taskStatus === "" ||
+      task.status === taskStatus;
 
+    return (
+      matchesSearch &&
+      matchesEnvironment &&
+      matchesTaskType &&
+      matchesStatus
+    );
+  });
   return (
-    matchesSearch &&
-    matchesEnvironment &&
-    matchesTaskType &&
-    matchesStatus
-  );
-});
-    return(
-        <div className={styles.tasksPage}>
-        <PageHeader
-            title="Opgaver"
-            description="Administrér genanvendelige opgaveskabeloner til øvelsesscenarier"
-            actions={
-                <>
-                <button>Importer Excel</button>
-                <button onClick={() => setCreateOpen(true)}>+ Ny Opgave</button>
-                </>
-            }
-        />
-<section className={styles.tasksStatusTabs}>
-  <button
-    className={taskStatus === "" ? styles.active : ""}
-    onClick={() => setTaskStatus("")}
-  >
-    Alle opgaver
-    <span>{tasks.length}</span>
-  </button>
+    <div className={styles.tasksPage}>
+      <PageHeader
+        title="Opgaver"
+        description="Administrér genanvendelige opgaveskabeloner til øvelsesscenarier"
+        actions={
+          <>
+            <button>Importer Excel</button>
+            <button onClick={() => setCreateOpen(true)}>+ Ny Opgave</button>
+          </>
+        }
+      />
+      <section className={styles.tasksStatusTabs}>
+        <button
+          className={taskStatus === "" ? styles.active : ""}
+          onClick={() => setTaskStatus("")}
+        >
+          Alle opgaver
+          <span>{tasks.length}</span>
+        </button>
 
-  <button
-    className={taskStatus === "ACTIVE" ? styles.active : ""}
-    onClick={() => setTaskStatus("ACTIVE")}
-  >
-    Aktive
-    <span>{tasks.filter((task) => task.status === "ACTIVE").length}</span>
-  </button>
+        <button
+          className={taskStatus === "ACTIVE" ? styles.active : ""}
+          onClick={() => setTaskStatus("ACTIVE")}
+        >
+          Aktive
+          <span>{tasks.filter((task) => task.status === "ACTIVE").length}</span>
+        </button>
 
-  <button
-    className={taskStatus === "DRAFT" ? styles.active : ""}
-    onClick={() => setTaskStatus("DRAFT")}
-  >
-    Kladder
-    <span>{tasks.filter((task) => task.status === "DRAFT").length}</span>
-  </button>
+        <button
+          className={taskStatus === "DRAFT" ? styles.active : ""}
+          onClick={() => setTaskStatus("DRAFT")}
+        >
+          Kladder
+          <span>{tasks.filter((task) => task.status === "DRAFT").length}</span>
+        </button>
 
-  <button
-    className={taskStatus === "ARCHIVED" ? styles.active : ""}
-    onClick={() => setTaskStatus("ARCHIVED")}
-  >
-    Arkiverede
-    <span>{tasks.filter((task) => task.status === "ARCHIVED").length}</span>
-  </button>
-</section>
+        <button
+          className={taskStatus === "ARCHIVED" ? styles.active : ""}
+          onClick={() => setTaskStatus("ARCHIVED")}
+        >
+          Arkiverede
+          <span>{tasks.filter((task) => task.status === "ARCHIVED").length}</span>
+        </button>
+      </section>
 
       <section className={styles.tasksToolbar}>
         <input
           type="search"
           placeholder="Søg på navn, beskrivelse eller miljø..."
           value={search}
-          onChange={(event)=> setSearch(event.target.value)}
+          onChange={(event) => setSearch(event.target.value)}
         />
 
         <select
-            value={environment}
-            onChange={(event)=> setEnvironment(event.target.value)}
+          value={environment}
+          onChange={(event) => setEnvironment(event.target.value)}
         >
-          <option value="">{environment ? "Nulstil filter":"Miljø"}</option>
+          <option value="">{environment ? "Nulstil filter" : "Miljø"}</option>
           <option value="Maritim">Maritim</option>
           <option value="Kyst">Kyst</option>
           <option value="Havn">Havn</option>
         </select>
 
         <select
-            value={taskType}
-            onChange={(event)=> setTaskType(event.target.value)}
+          value={taskType}
+          onChange={(event) => setTaskType(event.target.value)}
         >
-          <option value="">{taskType ? "Nulstil filter":"Opgavetyper"}</option>
+          <option value="">{taskType ? "Nulstil filter" : "Opgavetyper"}</option>
           <option value="Observation">Observation</option>
           <option value="Procedureøvelse">Procedureøvelse</option>
           <option value="Tjekliste">Tjekliste</option>
@@ -190,6 +212,7 @@ const filteredTasks = tasks.filter((task) => {
                   <th>Scenarier</th>
                   <th>Status</th>
                   <th>Ændret</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -212,6 +235,13 @@ const filteredTasks = tasks.filter((task) => {
                           year: "numeric",
                         }).format(new Date(task.updatedAt))}
                       </td>
+                      <td>
+                        <button
+                          onClick={() => setEditTaskId(task.id)}
+                        >
+                          Redigér
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
@@ -225,10 +255,18 @@ const filteredTasks = tasks.filter((task) => {
         )}
       </section>
       <CreateTaskDrawer
-  open={createOpen}
-  onClose={() => setCreateOpen(false)}
-  onCreated={() => {
-    setCreateOpen(false);
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => {
+          handleCreated()
+        }}
+      />
+      <EditTaskDrawer
+  taskId={editTaskId}
+  onClose={() => setEditTaskId(null)}
+  onUpdated={() => {
+    setEditTaskId(null);
+    handleCreated()
   }}
 />
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type SubmitEvent } from "react";
 import { apiFetch } from "../../api/apiFetch";
 import styles from "./CreateTaskDrawer.module.css";
 
@@ -178,7 +178,7 @@ export default function CreateTaskDrawer({
     setError("");
   }
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
 
     if (!environmentId || !taskTypeId) {
@@ -187,6 +187,21 @@ export default function CreateTaskDrawer({
     }
 
     try {
+      if (isQuiz && answerType === "MULTIPLE_CHOICE") {
+        const validOptions = options.filter(
+          (option) => option.optionText.trim() !== "",
+        );
+
+        if (validOptions.length < 2) {
+          setError("Tilføj mindst to svarmuligheder");
+          return;
+        }
+
+        if (!validOptions.some((option) => option.isCorrect)) {
+          setError("Markér mindst ét korrekt svar");
+          return;
+        }
+      }
       setSaving(true);
       setError("");
 
@@ -205,7 +220,6 @@ export default function CreateTaskDrawer({
           taskTypeId: Number(taskTypeId),
 
           status,
-
           ...(isQuiz
             ? {
               answerType,
@@ -229,6 +243,7 @@ export default function CreateTaskDrawer({
                 : {}),
             }
             : {}),
+
         }),
       });
 

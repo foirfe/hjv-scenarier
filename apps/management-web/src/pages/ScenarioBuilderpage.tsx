@@ -80,62 +80,73 @@ export default function ScenarioBuilderPage() {
     const { scenarioId } = useParams();
     const navigate = useNavigate();
     //STATES
-    const [scenario, setScenario] =
-        useState<Scenario | null>(null);
-    const [tasks, setTasks] =
-        useState<Task[]>([]);
-    const [loading, setLoading] =
-        useState(true);
-    const [error, setError] =
-        useState("");
-    const [search, setSearch] =
-        useState("");
-    const [addingTaskId, setAddingTaskId] =
-        useState<string | null>(null);
+    const [scenario, setScenario] = useState<Scenario | null>(null);
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [search, setSearch] = useState("");
+    const [addingTaskId, setAddingTaskId] = useState<string | null>(null);
+    const [draftName, setDraftName] = useState("");
+    const [draftDescription, setDraftDescription] = useState("");
+    const [draftStatus, setDraftStatus] = useState<Scenario["status"]>("DRAFT");
+    const [editingName, setEditingName] = useState(false);
+    const [editingDescription, setEditingDescription] = useState(false);
+    const [savingScenario, setSavingScenario] = useState(false);
 
     const getBuilderData = useCallback(async () => {
         const [scenario, tasks] = await Promise.all([
             apiFetch<Scenario>(`/scenarios/${scenarioId}`),
             apiFetch<Task[]>("/tasks"),
         ]);
-
         return { scenario, tasks };
     }, [scenarioId]);
 
-    useEffect(() => {
-        let isMounted = true;
+    const loadBuilder = useCallback(
+    async (syncDraft = false) => {
+        const {
+            scenario: scenarioData,
+            tasks: taskData,
+        } = await getBuilderData();
+        setScenario({
+            ...scenarioData,
+            scenarioTasks:
+                scenarioData.scenarioTasks ?? [],
+        });
 
-        getBuilderData()
-            .then(({ scenario: scenarioData, tasks: taskData }) => {
-                if (!isMounted) return;
-                setScenario({
-                    ...scenarioData,
-                    scenarioTasks: scenarioData.scenarioTasks ?? [],
-                });
-                setTasks(taskData);
-                setError("");
-            })
-           .catch((caughtError: unknown) => {
-    console.error("Builder-data kunne ikke hentes:", caughtError);
+        setTasks(taskData);
+        setError("");
 
-    if (isMounted) {
-        setError(
-            caughtError instanceof Error
-                ? caughtError.message
-                : "Kunne ikke hente scenariet",
-        );
+        if (syncDraft) {
+            setDraftName(scenarioData.name);
+            setDraftDescription(
+                scenarioData.description ?? "",
+            );
+            setDraftStatus(scenarioData.status);
+        }
+    },
+    [getBuilderData],
+);
+useEffect(() => {
+    async function initBuilder() {
+        try {
+            setLoading(true);
+            await loadBuilder(true);
+        } catch (caughtError: unknown) {
+            console.error(
+                "Builder-data kunne ikke hentes:",
+                caughtError,
+            );
+            setError(
+                caughtError instanceof Error
+                    ? caughtError.message
+                    : "Kunne ikke hente scenariet",
+            );
+        } finally {
+            setLoading(false);
+        }
     }
-            })
-            .finally(() => {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            });
-
-        return () => {
-            isMounted = false;
-        };
-    }, [getBuilderData]);
+    void initBuilder();
+}, [loadBuilder]);
 
     const addedTaskIds = new Set(
         scenario?.scenarioTasks.map(
@@ -153,9 +164,7 @@ export default function ScenarioBuilderPage() {
                     .toLowerCase()
                     .includes(value) ||
                 (
-                    task.description
-                        ?.toLowerCase()
-                        .includes(value) ?? false
+                    task.description?.toLowerCase().includes(value) ?? false
                 );
             const canUse =
                 task.status === "ACTIVE";
@@ -168,92 +177,238 @@ export default function ScenarioBuilderPage() {
             );
         },
     );
-    async function addTask(taskId: string) {
-        if (!scenarioId) return;
+  async function addTask(taskId: string) {
+    if (!scenarioId) return;
+    try {
+        setAddingTaskId(taskId);
+        setError("");
+        await apiFetch(
+            `/scenarios/${scenarioId}/tasks`,
+            {
+                method: "POST",
+                body: JSON.stringify({
+                    taskId,
+                    activationMode: "AUTOMATIC",
+                }),
+            },
+        );
+        await loadBuilder(false);
+    } catch {
+        setError(
+            "Opgaven kunne ikke tilføjes",
+        );
+    } finally {
+        setAddingTaskId(null);
+    }
+}
+    const hasUnsavedChanges =
+        scenario !== null &&
+        (
+            draftName !== scenario.name ||
+            draftDescription !==
+            (scenario.description ?? "") ||
+            draftStatus !== scenario.status
+        );
+
+    async function saveScenario() {
+        if (
+            !scenarioId ||
+            !scenario ||
+            !hasUnsavedChanges
+        ) {
+            return;
+        }
+
+        if (!draftName.trim()) {
+            setError(
+                "Scenariet skal have et navn",
+            );
+            return;
+        }
 
         try {
-            setAddingTaskId(taskId);
+            setSavingScenario(true);
             setError("");
+
             await apiFetch(
-                `/scenarios/${scenarioId}/tasks`,
+                `/scenarios/${scenarioId}`,
                 {
-                    method: "POST",
+                    method: "PATCH",
+
                     body: JSON.stringify({
-                        taskId,
-                        activationMode: "AUTOMATIC",
+                        name: draftName.trim(),
+
+                        description:
+                            draftDescription.trim() ||
+                            null,
+
+                        status: draftStatus,
                     }),
                 },
             );
-            const {
-                scenario: updatedScenario,
-                tasks: updatedTasks,
-            } = await getBuilderData();
-            setScenario({
-                ...updatedScenario,
-                scenarioTasks:
-                    updatedScenario.scenarioTasks ?? [],
-            });
-            setTasks(updatedTasks);
+
+            await loadBuilder(true);
         } catch {
-            setError("Opgaven kunne ikke tilføjes");
+            setError(
+                "Ændringerne kunne ikke gemmes",
+            );
         } finally {
-            setAddingTaskId(null);
+            setSavingScenario(false);
         }
     }
-   if (loading) {
-    return (
-        <div style={{ padding: "2rem", color: "black" }}>
-            Henter scenarie...
-        </div>
-    );
-}
-if (error) {
-    return (
-        <div style={{ padding: "2rem", color: "red" }}>
-            <h2>Kunne ikke åbne scenariet</h2>
-            <pre>{error}</pre>
-        </div>
-    );
-}
-if (!scenario) {
-    return (
-        <div style={{ padding: "2rem", color: "black" }}>
-            Scenariet blev ikke fundet.
-        </div>
-    );
-}
+
+    function handleBack() {
+        if (
+            hasUnsavedChanges &&
+            !window.confirm(
+                "Du har ugemte ændringer. Vil du forlade siden?",
+            )
+        ) {
+            return;
+        }
+        navigate("/scenarios");
+    }
+    if (loading) {
+        return (
+            <div style={{ padding: "2rem", color: "black" }}>
+                Henter scenarie...
+            </div>
+        );
+    }
+    if (error) {
+        return (
+            <div style={{ padding: "2rem", color: "red" }}>
+                <h2>Kunne ikke åbne scenariet</h2>
+                <pre>{error}</pre>
+            </div>
+        );
+    }
+    if (!scenario) {
+        return (
+            <div style={{ padding: "2rem", color: "black" }}>
+                Scenariet blev ikke fundet.
+            </div>
+        );
+    }
 
     return (
         <div className={styles.page}>
             <header className={styles.header}>
-                <div>
+                <div className={styles.headerInfo}>
                     <button
                         className={styles.backButton}
-                        onClick={() =>
-                            navigate("/scenarios")
-                        }
-                    >
+                        onClick={handleBack}>
                         ← Scenarier
                     </button>
+                    {editingName ? (
+                        <input
+                            className={styles.titleInput}
+                            value={draftName}
+                            autoFocus
+                            onChange={(event) =>
+                                setDraftName(event.target.value)
+                            }
+                            onBlur={() => setEditingName(false)}
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                    setEditingName(false);
+                                }
+                                if (event.key === "Escape") {
+                                    setDraftName(scenario.name);
+                                    setEditingName(false);
+                                }
+                            }}
+                        />
+                    ) : (
+                        <button
+                            type="button"
+                            className={styles.editableTitle}
+                            onClick={() => setEditingName(true)}
+                        >
+                            {draftName}
+                        </button>
+                    )}
+                    {editingDescription ? (
+                        <input
+                            className={styles.descriptionInput}
+                            value={draftDescription}
+                            autoFocus
+                            onChange={(event) =>
+                                setDraftDescription(
+                                    event.target.value,
+                                )
+                            }
+                            onBlur={() =>
+                                setEditingDescription(false)
+                            }
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                    setEditingDescription(false);
+                                }
 
-                    <h1>{scenario.name}</h1>
+                                if (event.key === "Escape") {
+                                    setDraftDescription(
+                                        scenario.description ?? "",
+                                    );
 
-                    <p>
-                        {scenario.description ??
-                            "Ingen beskrivelse"}
-                    </p>
+                                    setEditingDescription(false);
+                                }
+                            }}
+                        />
+                    ) : (
+                        <button
+                            type="button"
+                            className={styles.editableDescription}
+                            onClick={() =>
+                                setEditingDescription(true)
+                            }
+                        >
+                            {draftDescription ||
+                                "Klik for at tilføje en beskrivelse"}
+                        </button>
+                    )}
                 </div>
-
                 <div className={styles.headerActions}>
-                    <span
-                        className={styles.status}
+                    <select
+                        className={styles.statusSelect}
+                        value={draftStatus}
+                        onChange={(event) =>
+                            setDraftStatus(
+                                event.target.value as
+                                "DRAFT" | "READY",
+                            )
+                        }
                     >
-                        {scenario.status}
-                    </span>
+                        <option value="DRAFT">
+                            Kladde
+                        </option>
 
-                    <button>
-                        Gem ændringer
-                    </button>
+                        <option value="READY">
+                            Klar
+                        </option>
+                    </select>
+                    <div className={styles.saveArea}>
+                        {hasUnsavedChanges && (
+                            <span
+                                className={styles.unsavedDot}
+                                title="Der er ugemte ændringer"
+                            />
+                        )}
+
+                        <button
+                            disabled={
+                                !hasUnsavedChanges ||
+                                savingScenario
+                            }
+                            onClick={() =>
+                                void saveScenario()
+                            }
+                        >
+                            {savingScenario
+                                ? "Gemmer..."
+                                : "Gem ændringer"}
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -264,16 +419,12 @@ if (!scenario) {
             )}
 
             <div className={styles.builder}>
-                <aside
-                    className={styles.taskLibrary}
-                >
+                <aside className={styles.taskLibrary}>
                     <h2>Opgavebibliotek</h2>
-
                     <p>
                         Tilføj eksisterende opgaver
                         til scenariet.
                     </p>
-
                     <input
                         type="search"
                         value={search}
@@ -284,18 +435,12 @@ if (!scenario) {
                         }
                         placeholder="Søg efter opgave..."
                     />
-
                     <div
                         className={styles.taskList}
                     >
                         {availableTasks.map(
                             (task) => (
-                                <article
-                                    key={task.id}
-                                    className={
-                                        styles.libraryTask
-                                    }
-                                >
+                                <article key={task.id} className={styles.libraryTask}>
                                     <div>
                                         <strong>
                                             {task.name}
@@ -319,62 +464,37 @@ if (!scenario) {
                                             void addTask(task.id)
                                         }
                                     >
-                                        {addingTaskId ===
-                                            task.id
-                                            ? "..."
-                                            : "+ Tilføj"}
+                                        {addingTaskId === task.id ? "..." : "+ Tilføj"}
                                     </button>
                                 </article>
                             ),
                         )}
 
-                        {availableTasks.length ===
-                            0 && (
-                                <p>
-                                    Ingen tilgængelige
-                                    opgaver.
-                                </p>
-                            )}
+                        {availableTasks.length === 0 && (
+                            <p> Ingen tilgængelige opgaver.</p>
+                        )}
                     </div>
                 </aside>
 
                 <main
                     className={styles.scenarioTasks}
                 >
-                    <div
-                        className={
-                            styles.scenarioTasksHeader
-                        }
-                    >
+                    <div className={styles.scenarioTasksHeader}>
                         <div>
                             <h2>
                                 Scenariets opgaver
                             </h2>
 
-                            <span>
-                                {
-                                    scenario
-                                        .scenarioTasks
-                                        .length
-                                }{" "}
-                                opgaver
-                            </span>
+                            <span>{scenario.scenarioTasks.length}{" "}opgaver</span>
                         </div>
                     </div>
 
-                    <div
-                        className={
-                            styles.scenarioTaskList
-                        }
-                    >
+                    <div className={styles.scenarioTaskList}>
                         {scenario.scenarioTasks.map(
                             (scenarioTask) => (
                                 <article
                                     key={scenarioTask.id}
-                                    className={
-                                        styles.scenarioTask
-                                    }
-                                >
+                                    className={styles.scenarioTask}>
                                     <div>
                                         <strong>
                                             {scenarioTask.task.name}
@@ -382,26 +502,9 @@ if (!scenario) {
                                         <p>{scenarioTask.task.description}</p>
                                     </div>
 
-                                    <div
-                                        className={
-                                            styles.taskMeta
-                                        }
-                                    >
-                                        <span>
-                                            {
-                                                scenarioTask
-                                                    .activationMode
-                                            }
-                                        </span>
-
-                                        {scenarioTask
-                                            .dependencies
-                                            .length > 0 && (
-                                                <span>
-                                                    {scenarioTask.dependencies.length}{" "}afhængighed(er)
-                                                </span>
-                                            )}
-
+                                    <div className={styles.taskMeta}>
+                                        <span>{scenarioTask.activationMode}</span>
+                                        {scenarioTask.dependencies.length > 0 && (<span> {scenarioTask.dependencies.length}{" "}afhængighed(er)</span>)}
                                         <button>
                                             Konfigurer
                                         </button>
@@ -410,22 +513,18 @@ if (!scenario) {
                             ),
                         )}
 
-                        {scenario.scenarioTasks
-                            .length === 0 && (
-                                <div
-                                    className={styles.empty}
-                                >
-                                    <strong>
-                                        Scenariet har ingen
-                                        opgaver endnu
-                                    </strong>
-
-                                    <p>
-                                        Tilføj en opgave fra
-                                        biblioteket til venstre.
-                                    </p>
-                                </div>
-                            )}
+                        {scenario.scenarioTasks.length === 0 && (
+                            <div className={styles.empty}>
+                                <strong>
+                                    Scenariet har ingen
+                                    opgaver endnu
+                                </strong>
+                                <p>
+                                    Tilføj en opgave fra
+                                    biblioteket til venstre.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </main>
             </div>

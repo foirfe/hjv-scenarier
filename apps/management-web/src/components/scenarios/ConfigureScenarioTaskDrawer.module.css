@@ -1,0 +1,171 @@
+.drawerLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(600px, 100%);
+  height: 100vh;
+  overflow-y: auto;
+  background: white;
+  box-shadow: -8px 0 24px
+    rgba(0, 0, 0, 0.14);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px;
+  border-bottom: 1px solid #ddd;
+}
+
+.header h2 {
+  margin: 5px 0;
+}
+
+.header p {
+  margin: 0;
+  color: #666;
+}
+
+.eyebrow {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.closeButton {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+
+  padding: 24px;
+}
+
+.content h3 {
+  margin: 0 0 5px;
+}
+
+.hint {
+  margin: 0 0 15px;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.activationOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.activationCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+}
+
+.activationCard div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.activationCard span {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.activationCard.selected {
+  border-color: #21483e;
+  background: #f2f7f5;
+}
+
+.geoSection {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 24px;
+  border-top: 1px solid #ddd;
+}
+
+.coordinates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.geoSection label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.geoSection input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  font: inherit;
+}
+.radiusInput {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.radiusInput input {
+  max-width: 180px;
+}
+
+.error {
+  padding: 12px;
+  border: 1px solid #d89494;
+  background: #fff2f2;
+  color: #8d2525;
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  background: white;
+  border-top: 1px solid #ddd;
+}
+
+.saveButton {
+  border: 0;
+  padding: 10px 16px;
+  background: #21483e;
+  color: white;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .coordinates {
+    grid-template-columns: 1fr;
+  }
+}

@@ -120,7 +120,7 @@ export class ScenariosController {
     return this.scenariosService.addDependency(scenarioId, scenarioTaskId, dto);
   }
   //UPDATE TASK LOCATION
-  @Patch(':scenarioId/tasks/:scenarioTaskId/location')
+  @Patch(':scenarioId/tasks/:scenarioTaskId/activation')
   @ApiOperation({
     summary: 'Opdater aktiverin for en opgave',
     description:

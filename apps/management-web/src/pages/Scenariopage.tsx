@@ -25,19 +25,20 @@ type Scenario = {
 };
 
 export default function ScenariosPage() {
-    const [scenarios, setScenarios] =
-        useState<Scenario[]>([]);
+    const navigate = useNavigate();
+    //STATES
+    const [scenarios, setScenarios] = useState<Scenario[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [search, setSearch] = useState("");
-    const [status, setStatus] =
-        useState<"" | ScenarioStatus>("");
-    const [createOpen, setCreateOpen] =
-        useState(false);
-    const navigate = useNavigate();
+    const [status, setStatus] =  useState<"" | ScenarioStatus>("");
+    const [createOpen, setCreateOpen] = useState(false);
+
+
     const getScenariosData = useCallback(async () => {
         return await apiFetch<Scenario[]>("/scenarios");
     }, []);
+
     const refreshScenarios = useCallback(async () => {
         try {
             setLoading(true);

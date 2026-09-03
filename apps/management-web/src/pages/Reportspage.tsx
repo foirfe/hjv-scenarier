@@ -1,3 +1,11 @@
+import PageHeader from "../components/Pageheader";
+
 export default function ReportsPage() {
-  return <h1>Rapporter</h1>;
+  return(
+    <>
+    <PageHeader
+            title="Rapporter"
+    />
+    </>
+  )
 }

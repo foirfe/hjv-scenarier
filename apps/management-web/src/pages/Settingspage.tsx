@@ -1,3 +1,10 @@
+import PageHeader from "../components/Pageheader";
+
 export default function SettingsPage() {
-  return <h1>Indstillinger</h1>;
+  return(
+    <>
+    <PageHeader
+        title="Indstillinger"/>
+    </>
+  );
 }

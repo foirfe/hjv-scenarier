@@ -1,3 +1,10 @@
+import PageHeader from "../components/Pageheader";
+
 export default function OverviewPage() {
-  return <h1>Oversigt</h1>;
+  return(
+    <>
+    <PageHeader
+    title="HJV Øvelsessystem" />
+    </>
+  );
 }

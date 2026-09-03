@@ -11,6 +11,7 @@ import {
 
 import { apiFetch } from "../api/apiFetch";
 import styles from "./ScenarioBuilderPage.module.css";
+import ConfigureScenarioTaskDrawer from "../components/scenarios/ConfigureScenarioTaskDrawer";
 
 type ActivationMode =
     | "GEO"
@@ -92,6 +93,7 @@ export default function ScenarioBuilderPage() {
     const [editingName, setEditingName] = useState(false);
     const [editingDescription, setEditingDescription] = useState(false);
     const [savingScenario, setSavingScenario] = useState(false);
+    const [configuringTask, setConfiguringTask] = useState<ScenarioTask | null>(null);
 
     const getBuilderData = useCallback(async () => {
         const [scenario, tasks] = await Promise.all([
@@ -102,51 +104,51 @@ export default function ScenarioBuilderPage() {
     }, [scenarioId]);
 
     const loadBuilder = useCallback(
-    async (syncDraft = false) => {
-        const {
-            scenario: scenarioData,
-            tasks: taskData,
-        } = await getBuilderData();
-        setScenario({
-            ...scenarioData,
-            scenarioTasks:
-                scenarioData.scenarioTasks ?? [],
-        });
+        async (syncDraft = false) => {
+            const {
+                scenario: scenarioData,
+                tasks: taskData,
+            } = await getBuilderData();
+            setScenario({
+                ...scenarioData,
+                scenarioTasks:
+                    scenarioData.scenarioTasks ?? [],
+            });
 
-        setTasks(taskData);
-        setError("");
+            setTasks(taskData);
+            setError("");
 
-        if (syncDraft) {
-            setDraftName(scenarioData.name);
-            setDraftDescription(
-                scenarioData.description ?? "",
-            );
-            setDraftStatus(scenarioData.status);
+            if (syncDraft) {
+                setDraftName(scenarioData.name);
+                setDraftDescription(
+                    scenarioData.description ?? "",
+                );
+                setDraftStatus(scenarioData.status);
+            }
+        },
+        [getBuilderData],
+    );
+    useEffect(() => {
+        async function initBuilder() {
+            try {
+                setLoading(true);
+                await loadBuilder(true);
+            } catch (caughtError: unknown) {
+                console.error(
+                    "Builder-data kunne ikke hentes:",
+                    caughtError,
+                );
+                setError(
+                    caughtError instanceof Error
+                        ? caughtError.message
+                        : "Kunne ikke hente scenariet",
+                );
+            } finally {
+                setLoading(false);
+            }
         }
-    },
-    [getBuilderData],
-);
-useEffect(() => {
-    async function initBuilder() {
-        try {
-            setLoading(true);
-            await loadBuilder(true);
-        } catch (caughtError: unknown) {
-            console.error(
-                "Builder-data kunne ikke hentes:",
-                caughtError,
-            );
-            setError(
-                caughtError instanceof Error
-                    ? caughtError.message
-                    : "Kunne ikke hente scenariet",
-            );
-        } finally {
-            setLoading(false);
-        }
-    }
-    void initBuilder();
-}, [loadBuilder]);
+        void initBuilder();
+    }, [loadBuilder]);
 
     const addedTaskIds = new Set(
         scenario?.scenarioTasks.map(
@@ -177,30 +179,30 @@ useEffect(() => {
             );
         },
     );
-  async function addTask(taskId: string) {
-    if (!scenarioId) return;
-    try {
-        setAddingTaskId(taskId);
-        setError("");
-        await apiFetch(
-            `/scenarios/${scenarioId}/tasks`,
-            {
-                method: "POST",
-                body: JSON.stringify({
-                    taskId,
-                    activationMode: "AUTOMATIC",
-                }),
-            },
-        );
-        await loadBuilder(false);
-    } catch {
-        setError(
-            "Opgaven kunne ikke tilføjes",
-        );
-    } finally {
-        setAddingTaskId(null);
+    async function addTask(taskId: string) {
+        if (!scenarioId) return;
+        try {
+            setAddingTaskId(taskId);
+            setError("");
+            await apiFetch(
+                `/scenarios/${scenarioId}/tasks`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        taskId,
+                        activationMode: "AUTOMATIC",
+                    }),
+                },
+            );
+            await loadBuilder(false);
+        } catch {
+            setError(
+                "Opgaven kunne ikke tilføjes",
+            );
+        } finally {
+            setAddingTaskId(null);
+        }
     }
-}
     const hasUnsavedChanges =
         scenario !== null &&
         (
@@ -505,7 +507,7 @@ useEffect(() => {
                                     <div className={styles.taskMeta}>
                                         <span>{scenarioTask.activationMode}</span>
                                         {scenarioTask.dependencies.length > 0 && (<span> {scenarioTask.dependencies.length}{" "}afhængighed(er)</span>)}
-                                        <button>
+                                        <button onClick={() => setConfiguringTask(scenarioTask)}>
                                             Konfigurer
                                         </button>
                                     </div>
@@ -528,6 +530,18 @@ useEffect(() => {
                     </div>
                 </main>
             </div>
+            <ConfigureScenarioTaskDrawer
+                key={scenario?.id}
+                scenarioId={scenario.id}
+                scenarioTask={configuringTask}
+                onClose={() =>
+                    setConfiguringTask(null)
+                }
+                onSaved={async () => {
+                    setConfiguringTask(null);
+                    await loadBuilder(false);
+                }}
+            />
         </div>
     )
 }

@@ -1,0 +1,158 @@
+.page {
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+
+  padding: 24px 32px;
+
+  background: white;
+  border-bottom: 1px solid #ddd;
+}
+
+.header h1 {
+  margin: 8px 0 4px;
+}
+
+.header p {
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.backButton {
+  border: 0;
+  padding: 0;
+
+  background: transparent;
+
+  cursor: pointer;
+}
+
+.status {
+  padding: 7px 10px;
+  background: #eee;
+}
+
+.error {
+  margin: 16px 32px 0;
+  padding: 12px;
+
+  border: 1px solid #d89494;
+  background: #fff2f2;
+}
+
+.builder {
+  display: grid;
+  grid-template-columns:
+    minmax(280px, 360px)
+    1fr;
+
+  min-height: calc(100vh - 130px);
+}
+
+.taskLibrary {
+  padding: 24px;
+
+  background: white;
+  border-right: 1px solid #ddd;
+}
+
+.taskLibrary h2 {
+  margin-top: 0;
+}
+
+.taskLibrary > input {
+  width: 100%;
+  padding: 10px 12px;
+
+  margin: 12px 0 18px;
+
+  border: 1px solid #ccc;
+}
+
+.taskList,
+.scenarioTaskList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.libraryTask {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+
+  padding: 14px;
+
+  border: 1px solid #ddd;
+  background: #fafafa;
+}
+
+.libraryTask > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scenarioTasks {
+  padding: 24px 32px;
+}
+
+.scenarioTasksHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.scenarioTasksHeader h2 {
+  margin: 0 0 4px;
+}
+
+.scenarioTask {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+
+  padding: 18px;
+
+  background: white;
+  border: 1px solid #ddd;
+}
+
+.scenarioTask p {
+  margin-bottom: 0;
+}
+
+.taskMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.empty {
+  padding: 48px;
+
+  background: white;
+  border: 1px dashed #bbb;
+
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .builder {
+    grid-template-columns: 1fr;
+  }
+
+  .taskLibrary {
+    border-right: 0;
+    border-bottom: 1px solid #ddd;
+  }
+}

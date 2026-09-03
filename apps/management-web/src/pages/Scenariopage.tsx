@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router";
 import PageHeader from "../components/Pageheader";
 import { apiFetch } from "../api/apiFetch";
 import CreateScenarioDrawer from "../components/scenarios/CreateScenarioDrawer";
@@ -26,21 +27,17 @@ type Scenario = {
 export default function ScenariosPage() {
     const [scenarios, setScenarios] =
         useState<Scenario[]>([]);
-
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-
     const [search, setSearch] = useState("");
     const [status, setStatus] =
         useState<"" | ScenarioStatus>("");
-
     const [createOpen, setCreateOpen] =
         useState(false);
-
+    const navigate = useNavigate();
     const getScenariosData = useCallback(async () => {
         return await apiFetch<Scenario[]>("/scenarios");
     }, []);
-
     const refreshScenarios = useCallback(async () => {
         try {
             setLoading(true);
@@ -282,7 +279,8 @@ export default function ScenariosPage() {
                                             </td>
 
                                             <td>
-                                                <button className={styles.editButton}>
+                                                <button className={styles.editButton}
+                                                    onClick={()=> navigate(`/scenarios/${scenario.id}`)}>
                                                     Redigér
                                                 </button>
                                             </td>

@@ -133,6 +133,38 @@ export class ScenariosService {
       },
     });
   }
+  //FUNKTION DER SIKRER CYCLE CHECK, SÅ VI IKKER LÅSER OPGAVER SOM ALDRIG KAN BLIVE ÅBNET
+  private async wouldCreateDependencyCycle(
+    scenarioTaskId: string,
+    prerequisiteTaskId: string,
+  ) {
+    const dependencies = await this.prisma.scenarioTaskDependency.findMany({
+      select: {
+        scenarioTaskId: true,
+        prerequisiteTaskId: true,
+      },
+    });
+    const graph = new Map<string, string[]>();
+    for (const dependency of dependencies) {
+      const current = graph.get(dependency.scenarioTaskId) ?? [];
+      current.push(dependency.prerequisiteTaskId);
+      graph.set(dependency.scenarioTaskId, current);
+    }
+
+    const visited = new Set<string>();
+    function canReach(currentId: string, targetId: string): boolean {
+      if (currentId === targetId) {
+        return true;
+      }
+      if (visited.has(currentId)) {
+        return false;
+      }
+      visited.add(currentId);
+      const next = graph.get(currentId) ?? [];
+      return next.some((id) => canReach(id, targetId));
+    }
+    return canReach(prerequisiteTaskId, scenarioTaskId);
+  }
   //ADD DEPENDANCY TO TASK IN SCENARIO
   async addDependency(
     scenarioId: string,
@@ -156,7 +188,16 @@ export class ScenariosService {
         scenarioId,
       },
     });
+    const createsCycle = await this.wouldCreateDependencyCycle(
+      scenarioTaskId,
+      dto.prerequisiteTaskId,
+    );
 
+    if (createsCycle) {
+      throw new BadRequestException(
+        'Afhængigheden ville skabe en cirkulær afhængighed',
+      );
+    }
     if (!prerequisite) {
       throw new NotFoundException(
         'Forudsætningsopgaven findes ikke i scenariet',

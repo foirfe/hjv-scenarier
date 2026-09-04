@@ -18,12 +18,15 @@ type ScenarioTask = {
     name: string;
     description: string | null;
   };
+  dependencies: {
+    prerequisiteTaskId: string;
+  }[];
 };
 
 type Props = {
   scenarioId: string;
   scenarioTask: ScenarioTask | null;
-
+  scenarioTasks: ScenarioTask[];
   onClose: () => void;
   onSaved: () => void | Promise<void>;
 };
@@ -31,6 +34,7 @@ type Props = {
 export default function ConfigureScenarioTaskDrawer({
   scenarioId,
   scenarioTask,
+  scenarioTasks,
   onClose,
   onSaved,
 }: Props) {
@@ -42,9 +46,40 @@ export default function ConfigureScenarioTaskDrawer({
       ? String(scenarioTask.radiusMeters)
       : ""
   );
-
+  const [prerequisiteIds, setPrerequisiteIds] = useState<string[]>(scenarioTask?.dependencies.map((dependency) => dependency.prerequisiteTaskId,) ?? [],);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+
+  const availablePrerequisites =
+    scenarioTasks.filter(
+      (task) =>
+        task.id !== scenarioTask?.id,
+    );
+
+  function togglePrerequisite(id: string) {
+    setPrerequisiteIds((current) =>
+      current.includes(id)
+        ? current.filter(
+          (currentId) =>
+            currentId !== id,
+        )
+        : [...current, id],
+    );
+  }
+  //HELPER TIL AKTIVERINGSLABEL
+  function activationLabel(
+    mode: ActivationMode,
+  ) {
+    switch (mode) {
+      case "GEO":
+        return "GPS";
+      case "AUTOMATIC":
+        return "Automatisk";
+      case "MANUAL":
+        return "Manuel";
+    }
+  }
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
@@ -84,6 +119,25 @@ export default function ConfigureScenarioTaskDrawer({
         return;
       }
     }
+    const originalPrerequisiteIds =
+      scenarioTask.dependencies.map(
+        (dependency) =>
+          dependency.prerequisiteTaskId,
+      );
+
+    const dependenciesToAdd =
+      prerequisiteIds.filter(
+        (id) =>
+          !originalPrerequisiteIds.includes(
+            id,
+          ),
+      );
+
+    const dependenciesToRemove =
+      originalPrerequisiteIds.filter(
+        (id) =>
+          !prerequisiteIds.includes(id),
+      );
 
     try {
       setSaving(true);
@@ -96,18 +150,46 @@ export default function ConfigureScenarioTaskDrawer({
             activationMode,
             ...(activationMode === "GEO"
               ? {
-                  latitude: Number(latitude),
-                  longitude: Number(longitude),
-                  radiusMeters: Number(radiusMeters),
-                }
+                latitude: Number(latitude),
+                longitude: Number(longitude),
+                radiusMeters: Number(radiusMeters),
+              }
               : {}),
           }),
         }
       );
+      await Promise.all([
+        ...dependenciesToAdd.map(
+          (prerequisiteTaskId) =>
+            apiFetch(
+              `/scenarios/${scenarioId}/tasks/${scenarioTask.id}/dependencies`,
+              {
+                method: "POST",
 
+                body: JSON.stringify({
+                  prerequisiteTaskId,
+                }),
+              },
+            ),
+        ),
+
+        ...dependenciesToRemove.map(
+          (prerequisiteTaskId) =>
+            apiFetch(
+              `/scenarios/${scenarioId}/tasks/${scenarioTask.id}/dependencies/${prerequisiteTaskId}`,
+              {
+                method: "DELETE",
+              },
+            ),
+        ),
+      ]);
       await onSaved();
-    } catch {
-      setError("Opgavens konfiguration kunne ikke gemmes");
+    } catch (err) {
+      if (err instanceof Error && err.message) {
+        setError(err.message);
+      } else {
+        setError("Opgavens konfiguration kunne ikke gemmes");
+      }
     } finally {
       setSaving(false);
     }
@@ -144,7 +226,7 @@ export default function ConfigureScenarioTaskDrawer({
               onClick={onClose}
               className={styles.closeButton}
             >
-              ×
+              x
             </button>
           </header>
 
@@ -160,9 +242,8 @@ export default function ConfigureScenarioTaskDrawer({
 
               <div className={styles.activationOptions}>
                 <label
-                  className={`${styles.activationCard} ${
-                    activationMode === "AUTOMATIC" ? styles.selected : ""
-                  }`}
+                  className={`${styles.activationCard} ${activationMode === "AUTOMATIC" ? styles.selected : ""
+                    }`}
                 >
                   <input
                     type="radio"
@@ -182,9 +263,8 @@ export default function ConfigureScenarioTaskDrawer({
                 </label>
 
                 <label
-                  className={`${styles.activationCard} ${
-                    activationMode === "GEO" ? styles.selected : ""
-                  }`}
+                  className={`${styles.activationCard} ${activationMode === "GEO" ? styles.selected : ""
+                    }`}
                 >
                   <input
                     type="radio"
@@ -203,9 +283,8 @@ export default function ConfigureScenarioTaskDrawer({
                 </label>
 
                 <label
-                  className={`${styles.activationCard} ${
-                    activationMode === "MANUAL" ? styles.selected : ""
-                  }`}
+                  className={`${styles.activationCard} ${activationMode === "MANUAL" ? styles.selected : ""
+                    }`}
                 >
                   <input
                     type="radio"
@@ -271,7 +350,6 @@ export default function ConfigureScenarioTaskDrawer({
 
                 <label>
                   <span>Aktiveringsradius *</span>
-
                   <div className={styles.radiusInput}>
                     <input
                       type="number"
@@ -287,6 +365,59 @@ export default function ConfigureScenarioTaskDrawer({
                 </label>
               </section>
             )}
+            <section className={styles.dependenciesSection}>
+              <h3>Forudsætninger</h3>
+
+              <p className={styles.hint}>
+                Opgaven bliver først tilgængelig,
+                når alle valgte forudsætninger er
+                gennemført.
+              </p>
+
+              {availablePrerequisites.length > 0 ? (
+                <div className={styles.dependenciesList}>
+                  {availablePrerequisites.map(
+                    (task) => (
+                      <label
+                        key={task.id}
+                        className={
+                          styles.dependencyOption
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          checked={prerequisiteIds.includes(
+                            task.id,
+                          )}
+                          onChange={() =>
+                            togglePrerequisite(
+                              task.id,
+                            )
+                          }
+                        />
+
+                        <div>
+                          <strong>
+                            {task.task.name}
+                          </strong>
+
+                          <span>
+                            {activationLabel(
+                              task.activationMode,
+                            )}
+                          </span>
+                        </div>
+                      </label>
+                    ),
+                  )}
+                </div>
+              ) : (
+                <p className={styles.hint}>
+                  Der er ingen andre opgaver i
+                  scenariet endnu.
+                </p>
+              )}
+            </section>
           </div>
 
           <footer className={styles.footer}>

@@ -150,6 +150,8 @@ export default function ScenarioBuilderPage() {
         void initBuilder();
     }, [loadBuilder]);
 
+
+    
     const addedTaskIds = new Set(
         scenario?.scenarioTasks.map(
             (scenarioTask) =>
@@ -531,9 +533,10 @@ export default function ScenarioBuilderPage() {
                 </main>
             </div>
             <ConfigureScenarioTaskDrawer
-                key={scenario?.id}
+                key={configuringTask?.id ?? "closed"}
                 scenarioId={scenario.id}
                 scenarioTask={configuringTask}
+                scenarioTasks={scenario.scenarioTasks}
                 onClose={() =>
                     setConfiguringTask(null)
                 }

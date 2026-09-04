@@ -181,4 +181,20 @@ export class ScenariosController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.scenariosService.remove(id);
   }
+  @Delete(':scenarioId/tasks/:scenarioTaskId/dependencies/:prerequisiteTaskId')
+  @ApiOperation({
+    summary: 'Fjern afhængighed fra en opgave',
+  })
+  removeDependency(
+    @Param('scenarioTaskId', ParseUUIDPipe)
+    scenarioTaskId: string,
+
+    @Param('prerequisiteTaskId', ParseUUIDPipe)
+    prerequisiteTaskId: string,
+  ) {
+    return this.scenariosService.removeDependency(
+      scenarioTaskId,
+      prerequisiteTaskId,
+    );
+  }
 }

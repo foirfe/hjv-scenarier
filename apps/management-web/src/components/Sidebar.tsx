@@ -31,7 +31,7 @@ export default function Sidebar() {
         <NavLink to="/scenarios" className={getNavLinkClass}>
           Scenarier
         </NavLink>
-        <NavLink to="/members" className={getNavLinkClass}>
+        <NavLink to="/users" className={getNavLinkClass}>
           Deltagere
         </NavLink>
         <NavLink to="/reports" className={getNavLinkClass}>

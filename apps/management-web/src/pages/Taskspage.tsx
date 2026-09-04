@@ -36,14 +36,11 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
-
   const [search, setSearch] = useState("");
   const [environment, setEnvironment] = useState("");
   const [taskType, setTaskType] = useState("");
-  const [taskStatus, setTaskStatus] =
-    useState<"" | TaskStatus>("");
-  const [editTaskId, setEditTaskId] =
-    useState<string | null>(null);
+  const [taskStatus, setTaskStatus] = useState<"" | TaskStatus>("");
+  const [editTaskId, setEditTaskId] = useState<string | null>(null);
 
   const getTasksData = useCallback(async () => {
     return await apiFetch<Task[]>("/tasks");

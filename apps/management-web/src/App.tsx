@@ -7,8 +7,8 @@ import LoginPage from "./pages/Loginpage";
 import OverviewPage from "./pages/Overviewpage";
 import TasksPage from "./pages/Taskspage";
 import ScenariosPage from "./pages/Scenariopage";
-import ScenarioBuilderPage from "./pages/ScenarioBuilderPage";
-import MembersPage from "./pages/Memberspage";
+import ScenarioBuilderPage from "./pages/ScenarioBuilderpage";
+import UsersPage from "./pages/Userspage";
 import ReportsPage from "./pages/Reportspage";
 import SettingsPage from "./pages/Settingspage";
 
@@ -25,7 +25,7 @@ export default function App() {
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/scenarios" element={<ScenariosPage />} />
           <Route path="/scenarios/:scenarioId" element={<ScenarioBuilderPage/>}/>
-          <Route path="/members" element={<MembersPage />} />
+          <Route path="/users" element={<UsersPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

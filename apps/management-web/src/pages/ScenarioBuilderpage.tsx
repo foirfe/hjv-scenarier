@@ -94,6 +94,7 @@ export default function ScenarioBuilderPage() {
     const [editingDescription, setEditingDescription] = useState(false);
     const [savingScenario, setSavingScenario] = useState(false);
     const [configuringTask, setConfiguringTask] = useState<ScenarioTask | null>(null);
+    const [removingTaskId, setRemovingTaskId] = useState<string | null>(null);
 
     const getBuilderData = useCallback(async () => {
         const [scenario, tasks] = await Promise.all([
@@ -128,6 +129,7 @@ export default function ScenarioBuilderPage() {
         },
         [getBuilderData],
     );
+
     useEffect(() => {
         async function initBuilder() {
             try {
@@ -150,8 +152,6 @@ export default function ScenarioBuilderPage() {
         void initBuilder();
     }, [loadBuilder]);
 
-
-    
     const addedTaskIds = new Set(
         scenario?.scenarioTasks.map(
             (scenarioTask) =>
@@ -181,6 +181,7 @@ export default function ScenarioBuilderPage() {
             );
         },
     );
+
     async function addTask(taskId: string) {
         if (!scenarioId) return;
         try {
@@ -205,6 +206,40 @@ export default function ScenarioBuilderPage() {
             setAddingTaskId(null);
         }
     }
+
+    async function removeTask(
+        scenarioTask: ScenarioTask,
+    ) {
+        if (!scenarioId) return;
+
+        const confirmed = window.confirm(`Vil du fjerne "${scenarioTask.task.name}" fra scenariet?\n\nSelve opgaveskabelonen bliver ikke slettet.`);
+
+        if (!confirmed) {
+            return;
+        }
+        try {
+            setRemovingTaskId(
+                scenarioTask.id,
+            );
+            setError("");
+            await apiFetch(
+                `/scenarios/${scenarioId}/tasks/${scenarioTask.id}`,
+                {
+                    method: "DELETE",
+                },
+            );
+            await loadBuilder(false);
+        } catch (err) {
+            if (err instanceof Error && err.message) {
+                setError(err.message);
+            } else {
+                setError("Opgaven kunne ikke fjernes fra scenarie");
+            }
+        } finally {
+            setRemovingTaskId(null);
+        }
+    }
+
     const hasUnsavedChanges =
         scenario !== null &&
         (
@@ -238,19 +273,15 @@ export default function ScenarioBuilderPage() {
                 `/scenarios/${scenarioId}`,
                 {
                     method: "PATCH",
-
                     body: JSON.stringify({
                         name: draftName.trim(),
-
                         description:
                             draftDescription.trim() ||
                             null,
-
                         status: draftStatus,
                     }),
                 },
             );
-
             await loadBuilder(true);
         } catch {
             setError(
@@ -272,6 +303,7 @@ export default function ScenarioBuilderPage() {
         }
         navigate("/scenarios");
     }
+
     if (loading) {
         return (
             <div style={{ padding: "2rem", color: "black" }}>
@@ -293,6 +325,25 @@ export default function ScenarioBuilderPage() {
                 Scenariet blev ikke fundet.
             </div>
         );
+    }
+
+    function getScenarioTaskName(
+        scenarioTaskId: string,
+    ) {
+        return (scenario?.scenarioTasks.find((task) => task.id === scenarioTaskId)?.task.name ?? "Ukendt opgave");
+    }
+
+    function activationLabel(
+        mode: ActivationMode,
+    ) {
+        switch (mode) {
+            case "GEO":
+                return "GPS";
+            case "AUTOMATIC":
+                return "Automatisk";
+            case "MANUAL":
+                return "Manuel";
+        }
     }
 
     return (
@@ -354,7 +405,6 @@ export default function ScenarioBuilderPage() {
                                     setDraftDescription(
                                         scenario.description ?? "",
                                     );
-
                                     setEditingDescription(false);
                                 }
                             }}
@@ -379,7 +429,7 @@ export default function ScenarioBuilderPage() {
                         onChange={(event) =>
                             setDraftStatus(
                                 event.target.value as
-                                "DRAFT" | "READY",
+                                | "DRAFT" | "READY",
                             )
                         }
                     >
@@ -439,83 +489,100 @@ export default function ScenarioBuilderPage() {
                         }
                         placeholder="Søg efter opgave..."
                     />
-                    <div
-                        className={styles.taskList}
-                    >
-                        {availableTasks.map(
-                            (task) => (
-                                <article key={task.id} className={styles.libraryTask}>
-                                    <div>
-                                        <strong>
-                                            {task.name}
-                                        </strong>
-
-                                        <span>
-                                            {task.taskType?.name ?? "Ukendt opgavetype"}
-                                        </span>
-
-                                        <small>
-                                            {task.environment?.name ?? "Ukendt miljø"}
-                                        </small>
-                                    </div>
-
-                                    <button
-                                        disabled={
-                                            addingTaskId ===
-                                            task.id
-                                        }
-                                        onClick={() =>
-                                            void addTask(task.id)
-                                        }
-                                    >
-                                        {addingTaskId === task.id ? "..." : "+ Tilføj"}
-                                    </button>
-                                </article>
-                            ),
-                        )}
-
-                        {availableTasks.length === 0 && (
-                            <p> Ingen tilgængelige opgaver.</p>
-                        )}
+                    <div className={styles.taskList}>
+                        {availableTasks.map((task) => (
+                            <article key={task.id} className={styles.libraryTask}>
+                                <div>
+                                    <strong>{task.name}</strong>
+                                    {task.description && <p>{task.description}</p>}
+                                </div>
+                                <button
+                                    disabled={addingTaskId === task.id}
+                                    onClick={() => void addTask(task.id)}
+                                >
+                                    {addingTaskId === task.id ? "Tilføjer..." : "Tilføj"}
+                                </button>
+                            </article>
+                        ))}
                     </div>
                 </aside>
 
-                <main
-                    className={styles.scenarioTasks}
-                >
-                    <div className={styles.scenarioTasksHeader}>
-                        <div>
-                            <h2>
-                                Scenariets opgaver
-                            </h2>
+                <main className={styles.scenarioCanvas}>
+                    <h2>Opgaver i scenariet</h2>
+                    <div className={styles.taskList}>
+                        {scenario.scenarioTasks.map((scenarioTask) => (
+                            <article
+                                key={scenarioTask.id}
+                                className={styles.scenarioTask}
+                            >
+                                <div className={styles.scenarioTaskMain}>
+                                    <div className={styles.scenarioTaskHeader}>
+                                        <div>
+                                            <strong className={styles.scenarioTaskName}>
+                                                {scenarioTask.task.name}
+                                            </strong>
+                                            {scenarioTask.task.description && (
+                                                <p>{scenarioTask.task.description}</p>
+                                            )}
+                                        </div>
 
-                            <span>{scenario.scenarioTasks.length}{" "}opgaver</span>
-                        </div>
-                    </div>
-
-                    <div className={styles.scenarioTaskList}>
-                        {scenario.scenarioTasks.map(
-                            (scenarioTask) => (
-                                <article
-                                    key={scenarioTask.id}
-                                    className={styles.scenarioTask}>
-                                    <div>
-                                        <strong>
-                                            {scenarioTask.task.name}
-                                        </strong>
-                                        <p>{scenarioTask.task.description}</p>
+                                        <div className={styles.activationBadges}>
+                                            <span className={styles.activationBadge}>
+                                                {activationLabel(scenarioTask.activationMode)}
+                                            </span>
+                                            {scenarioTask.activationMode === "GEO" &&
+                                                scenarioTask.radiusMeters !== null && (
+                                                    <span className={styles.radiusBadge}>
+                                                        {scenarioTask.radiusMeters} m
+                                                    </span>
+                                                )}
+                                        </div>
                                     </div>
 
-                                    <div className={styles.taskMeta}>
-                                        <span>{scenarioTask.activationMode}</span>
-                                        {scenarioTask.dependencies.length > 0 && (<span> {scenarioTask.dependencies.length}{" "}afhængighed(er)</span>)}
-                                        <button onClick={() => setConfiguringTask(scenarioTask)}>
-                                            Konfigurer
-                                        </button>
-                                    </div>
-                                </article>
-                            ),
-                        )}
+                                    {scenarioTask.dependencies.length > 0 && (
+                                        <div className={styles.dependencies}>
+                                            <span className={styles.dependenciesLabel}>
+                                                Kræver
+                                            </span>
+                                            <div className={styles.dependencyBadges}>
+                                                {scenarioTask.dependencies.map((dependency) => (
+                                                    <span
+                                                        key={dependency.prerequisiteTaskId}
+                                                        className={styles.dependencyBadge}
+                                                    >
+                                                        {getScenarioTaskName(
+                                                            dependency.prerequisiteTaskId,
+                                                        )}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className={styles.taskActions}>
+                                    <button
+                                        onClick={() =>
+                                            setConfiguringTask(scenarioTask)
+                                        }
+                                    >
+                                        Konfigurer
+                                    </button>
+
+                                    <button
+                                        className={styles.removeButton}
+                                        disabled={removingTaskId === scenarioTask.id}
+                                        onClick={() =>
+                                            void removeTask(scenarioTask)
+                                        }
+                                    >
+                                        {removingTaskId === scenarioTask.id
+                                            ? "Fjerner..."
+                                            : "Fjern"}
+                                    </button>
+                                </div>
+                            </article>
+                        ))}
 
                         {scenario.scenarioTasks.length === 0 && (
                             <div className={styles.empty}>
@@ -537,14 +604,12 @@ export default function ScenarioBuilderPage() {
                 scenarioId={scenario.id}
                 scenarioTask={configuringTask}
                 scenarioTasks={scenario.scenarioTasks}
-                onClose={() =>
-                    setConfiguringTask(null)
-                }
+                onClose={() => setConfiguringTask(null)}
                 onSaved={async () => {
                     setConfiguringTask(null);
                     await loadBuilder(false);
                 }}
             />
         </div>
-    )
+    );
 }

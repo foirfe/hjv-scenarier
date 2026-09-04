@@ -380,10 +380,7 @@ export default function ConfigureScenarioTaskDrawer({
                     (task) => (
                       <label
                         key={task.id}
-                        className={
-                          styles.dependencyOption
-                        }
-                      >
+                        className={`${styles.dependencyOption} ${prerequisiteIds.includes(task.id) ? styles.dependencySelected : ""}`}>
                         <input
                           type="checkbox"
                           checked={prerequisiteIds.includes(

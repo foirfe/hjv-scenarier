@@ -75,7 +75,7 @@ export class ScenariosController {
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.scenariosService.findOne(id);
   }
-  //ADD TASK TO SCENARIO
+  //TILFØJ TASK TIL SCENARIE
   @Post(':scenarioId/tasks')
   @ApiOperation({
     summary: 'Tilføj opgave til scenarie',
@@ -93,6 +93,21 @@ export class ScenariosController {
     @Body() dto: AddScenarioTaskDto,
   ) {
     return this.scenariosService.addTask(scenarioId, dto);
+  }
+  //FJERN TASK FRA SCENARIE
+  @Delete(':scenarioId/tasks/:scenarioTaskId')
+  @ApiOperation({
+    summary: 'Fjern opgave fra scenarie',
+    description: 'Fjerner en opgave fra det valgte scenarie.',
+  })
+  removeTask(
+    @Param('scenarioId', ParseUUIDPipe)
+    scenarioId: string,
+
+    @Param('scenarioTaskId', ParseUUIDPipe)
+    scenarioTaskId: string,
+  ) {
+    return this.scenariosService.removeTask(scenarioId, scenarioTaskId);
   }
   //ADD DEPENDANCY TO SCENARIO
   @Post(':scenarioId/tasks/:scenarioTaskId/dependencies')
@@ -140,7 +155,6 @@ export class ScenariosController {
     status: 404,
     description: 'Scenariet eller opgaven blev ikke fundet.',
   })
-  @Patch(':scenarioId/tasks/:scenarioTaskId/activation')
   updateTaskActivation(
     @Param('scenarioId', ParseUUIDPipe) scenarioId: string,
     @Param('scenarioTaskId', ParseUUIDPipe) scenarioTaskId: string,

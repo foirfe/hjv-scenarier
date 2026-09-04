@@ -15,7 +15,7 @@ import { UpdateScenarioTaskActivationDto } from './dto/update-scenario-task-acti
 @Injectable()
 export class ScenariosService {
   constructor(private readonly prisma: PrismaService) {}
-  //CREATE SCENARIO
+  //CREATE SCENARIE
   create(dto: CreateScenarioDto) {
     return this.prisma.scenario.create({
       data: {
@@ -25,7 +25,7 @@ export class ScenariosService {
       },
     });
   }
-  //GET ALL SCENARIOS
+  //GET ALLE SCENARIER
   findAll() {
     return this.prisma.scenario.findMany({
       include: {
@@ -41,7 +41,7 @@ export class ScenariosService {
       },
     });
   }
-  //GET ONE SCENARIO
+  //GET ET SCENARIE
   async findOne(id: string) {
     const scenario = await this.prisma.scenario.findUnique({
       where: { id },
@@ -86,17 +86,16 @@ export class ScenariosService {
     });
     return scenario;
   }
-  //UPDATE SCENARIO
+  //OPDATERE SCENARIE
   update(id: string, dto: UpdateScenarioDto) {
     return this.prisma.scenario.update({
       where: { id },
       data: dto,
     });
   }
-  //ADD TASK TO SCENARIO
+  //TILFØJ TASK TIL SCENARIE
   addTask(scenarioId: string, dto: AddScenarioTaskDto) {
     const activationMode = dto.activationMode ?? ActivationMode.GEO;
-
     if (activationMode === ActivationMode.GEO) {
       if (
         dto.latitude === undefined ||
@@ -112,24 +111,37 @@ export class ScenariosService {
         throw new BadRequestException('radiusMeters skal være større end 0');
       }
     }
-
     return this.prisma.scenarioTask.create({
       data: {
         scenarioId,
         taskId: dto.taskId,
-
         activationMode,
-
         latitude: activationMode === ActivationMode.GEO ? dto.latitude : null,
-
         longitude: activationMode === ActivationMode.GEO ? dto.longitude : null,
-
         radiusMeters:
           activationMode === ActivationMode.GEO ? dto.radiusMeters : null,
       },
-
       include: {
         task: true,
+      },
+    });
+  }
+  //FJERN TASK FRA SCENARIE
+  async removeTask(scenarioId: string, scenarioTaskId: string) {
+    const scenarioTask = await this.prisma.scenarioTask.findFirst({
+      where: {
+        id: scenarioTaskId,
+        scenarioId,
+      },
+    });
+
+    if (!scenarioTask) {
+      throw new NotFoundException('Opgaven findes ikke i scenariet');
+    }
+
+    return this.prisma.scenarioTask.delete({
+      where: {
+        id: scenarioTaskId,
       },
     });
   }

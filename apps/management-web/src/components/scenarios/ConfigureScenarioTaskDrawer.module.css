@@ -137,7 +137,34 @@
 .radiusInput input {
   max-width: 180px;
 }
+.dependencyOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 
+  padding: 12px;
+
+  border: 1px solid #ddd;
+  border-radius: 6px;
+
+  cursor: pointer;
+}
+
+.dependencySelected {
+  border-color: #476b61;
+  background: #f2f7f5;
+}
+
+.dependencyOption > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dependencyOption span {
+  color: #747a76;
+  font-size: 0.8rem;
+}
 .error {
   padding: 12px;
   border: 1px solid #d89494;

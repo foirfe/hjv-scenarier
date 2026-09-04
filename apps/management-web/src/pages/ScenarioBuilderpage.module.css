@@ -148,9 +148,7 @@
   display: flex;
   justify-content: space-between;
   gap: 10px;
-
   padding: 14px;
-
   border: 1px solid #ddd;
   background: #fafafa;
 }
@@ -160,15 +158,20 @@
   flex-direction: column;
   gap: 4px;
 }
-
+.scenarioCanvas{
+  padding: 10px;
+}
 .scenarioTasks {
   padding: 24px 32px;
 }
 
-.scenarioTasksHeader {
+.scenarioTaskHeader {
   display: flex;
   justify-content: space-between;
   margin-bottom: 18px;
+}
+.scenarioTaskName {
+  font-size: 1rem;
 }
 
 .scenarioTasksHeader h2 {
@@ -178,12 +181,15 @@
 .scenarioTask {
   display: flex;
   justify-content: space-between;
-  gap: 24px;
-
+  gap: 18px;
   padding: 18px;
-
   background: white;
   border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.scenarioTask:hover{
+  border-color: var(--color-text-muted);
 }
 
 .scenarioTask p {
@@ -217,6 +223,90 @@
   background: #c93636;
 }
 
+.activationBadges{
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+.activationBadge,
+.radiusBadge {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.activationBadge{
+  background: var(--color-primary);
+  color: var(--color-background);
+}
+
+.radiusBadge {
+  background: var(--color-primary);
+    color: var(--color-background);
+}
+
+.dependencies {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.dependenciesLabel {
+  padding-top: 5px;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.dependencyBadges{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dependencyBadge {
+  padding: 5px 9px;
+  border: 1px solid #d7ddd9;
+  border-radius: 999px;
+  background: #f7f8f6;
+  font-size: 0.78rem;
+}
+
+.taskActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+
+  padding-top: 12px;
+
+  border-top: 1px solid #eee;
+}
+
+.configureButton {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.removeButton {
+  padding: 8px 12px;
+
+  border: 1px solid #d7a4a4;
+  background: transparent;
+  color: #a02e2e;
+
+  cursor: pointer;
+}
+
+.removeButton:hover {
+  background: #fff3f3;
+}
+
+.removeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 @media (max-width: 900px) {
   .builder {
     grid-template-columns: 1fr;

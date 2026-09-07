@@ -8,6 +8,8 @@ import PageHeader from "../components/Pageheader";
 import { apiFetch } from "../api/apiFetch";
 import CreateRunDrawer from "../components/scenarioruns/CreateRunDrawer";
 import styles from "./RunsPage.module.css";
+import { useNavigate } from "react-router";
+
 
 type RunStatus =
   | "NOT_STARTED"
@@ -44,6 +46,7 @@ export default function RunsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const navigate = useNavigate();
 
     const getRunsData = useCallback(async () => {return await apiFetch<ScenarioRun[]>("/scenario-runs");
     }, []);
@@ -207,7 +210,9 @@ export default function RunsPage() {
             </td>
 
             <td>
-              <button>
+              <button onClick={()=>
+                navigate(`/runs/${run.id}`)
+              }>
                 Åbn
               </button>
             </td>

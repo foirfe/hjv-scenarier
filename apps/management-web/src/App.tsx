@@ -12,6 +12,7 @@ import UsersPage from "./pages/Userspage";
 import ReportsPage from "./pages/Reportspage";
 import SettingsPage from "./pages/Settingspage";
 import RunsPage from "./pages/Runspage";
+import RunSetupPage from "./pages/RunSetuppage";
 
 
 export default function App() {
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/scenarios" element={<ScenariosPage />} />
           <Route path="/scenarios/:scenarioId" element={<ScenarioBuilderPage />} />
           <Route path="/runs" element={<RunsPage />} />
+          <Route path="/runs/:runId" element={<RunSetupPage/>}/>
           <Route path="/users" element={<UsersPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/settings" element={<SettingsPage />} />

@@ -280,6 +280,17 @@ export class ScenarioRunsService {
         'Scenarieafviklingen skal have mindst én bruger',
       );
     }
+    const hasParticipant = scenarioRun.users.some(
+      (user) =>
+        user.role === ScenarioRole.PARTICIPANT ||
+        user.role === ScenarioRole.TEAM_LEADER,
+    );
+
+    if (!hasParticipant) {
+      throw new BadRequestException(
+        'Scenarieafviklingen skal have mindst én deltager eller holdleder',
+      );
+    }
 
     if (scenarioRun.scenario.status !== 'READY') {
       throw new BadRequestException(

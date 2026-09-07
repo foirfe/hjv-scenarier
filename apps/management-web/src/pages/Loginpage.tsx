@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from "react";
 import { Navigate, useNavigate } from "react-router";
 import { useAuth } from "../auth/useAuth";
+import styles from "./LoginPage.module.css"
 
 export default function LoginPage() {
   const { login, user } = useAuth();
@@ -33,43 +34,68 @@ export default function LoginPage() {
     }
   }
 
-  return (
-    <main className="login-page">
-      <form className="login-form" onSubmit={handleSubmit}>
-        <div>
-          <strong>HJEMMEVÆRNET</strong>
-          <p>ØVELSESSYSTEM</p>
-        </div>
 
+return (
+  <main className={styles.loginPage}>
+    <form
+      className={styles.loginForm}
+      onSubmit={handleSubmit}
+    >
+      <div className={styles.brand}>
+        <strong>HJEMMEVÆRNSSKOLENS</strong>
+        <p>ØVELSESSYSTEM</p>
+      </div>
+
+      <div className={styles.heading}>
         <h1>Log ind</h1>
+        <p>
+          Log ind for at administrere
+          øvelser og scenarieafviklinger.
+        </p>
+      </div>
 
-        <label>
-          Brugernavn
-          <input
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            autoComplete="username"
-            required
-          />
-        </label>
+      <label>
+        <span>Brugernavn</span>
 
-        <label>
-          Adgangskode
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="current-password"
-            required
-          />
-        </label>
+        <input
+          value={username}
+          onChange={(event) =>
+            setUsername(event.target.value)
+          }
+          autoComplete="username"
+          required
+        />
+      </label>
 
-        {error && <p className="login-error">{error}</p>}
+      <label>
+        <span>Adgangskode</span>
 
-        <button disabled={loading}>
-          {loading ? "Logger ind..." : "Log ind"}
-        </button>
-      </form>
-    </main>
-  );
+        <input
+          type="password"
+          value={password}
+          onChange={(event) =>
+            setPassword(event.target.value)
+          }
+          autoComplete="current-password"
+          required
+        />
+      </label>
+
+      {error && (
+        <p className={styles.loginError}>
+          {error}
+        </p>
+      )}
+
+      <button
+        className={styles.loginButton}
+        disabled={loading}
+      >
+        {loading
+          ? "Logger ind..."
+          : "Log ind"}
+      </button>
+    </form>
+  </main>
+);
 }

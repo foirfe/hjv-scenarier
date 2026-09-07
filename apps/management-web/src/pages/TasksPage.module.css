@@ -178,10 +178,10 @@
 
 .importButton{
   padding: 10px 16px;
-  border: 1px solid var(--color-muted);
+  border: 1px solid var(--color-primary-muted);
   border-radius: var(--radius-small);
   background: var(--color-background);
-  color: var(--color-muted);
+  color: var(--color-primary-muted);
   font: inherit;
   font-weight: 500;
   cursor: pointer;

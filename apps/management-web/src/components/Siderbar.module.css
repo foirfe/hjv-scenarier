@@ -1,7 +1,7 @@
 .sidebar {
   width: 220px;
   min-height: 100vh;
-  background: #173b34;
+  background: var(--color-primary);
   color: white;
   padding: 24px 16px;
 
@@ -63,7 +63,7 @@
   top: 6px;
   bottom: 6px;
   width: 4px;
-  background-color: var(--color-muted);
+  background-color: var(--color-primary-muted);
   border-radius: 0 4px 4px 0;
 }
 .sidebarUser {

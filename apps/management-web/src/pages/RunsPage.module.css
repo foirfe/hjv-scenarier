@@ -1,0 +1,162 @@
+.page {
+  min-height: 100vh;
+}
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
+.createButton {
+  padding: 10px 16px;
+
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-small);
+
+  background: var(--color-primary);
+  color: white;
+
+  font: inherit;
+  font-weight: 500;
+
+  cursor: pointer;
+}
+
+.createButton:hover {
+  opacity: 0.92;
+}
+
+.content {
+  padding: 20px 32px;
+}
+
+.content table {
+  width: 100%;
+
+  border-collapse: separate;
+  border-spacing: 0;
+
+  overflow: hidden;
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+
+  background: var(--color-surface);
+}
+
+.content th,
+.content td {
+  padding: 14px 16px;
+
+  text-align: left;
+  vertical-align: middle;
+
+  border-bottom: 1px solid var(--color-border);
+}
+
+.content tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.content th {
+  background: #f8f9f7;
+  color: var(--color-muted);
+
+  font-size: 0.8rem;
+  font-weight: 600;
+
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.content tbody tr {
+  transition: background 0.15s ease;
+}
+
+.content tbody tr:hover {
+  background: #fafbf9;
+}
+
+.content td:first-child strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.content td:nth-child(3),
+.content td:nth-child(4),
+.content td:nth-child(5) {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 5px 9px;
+
+  border-radius: 999px;
+
+  background: #f0f1ef;
+  color: #5f6662;
+
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.statusNotStarted {
+  background: #f0f1ef;
+  color: #5f6662;
+}
+
+.statusInProgress {
+  background: #e3f1eb;
+  color: #245f4f;
+}
+
+.statusCompleted {
+  background: #e7eee9;
+  color: #315e52;
+}
+
+.statusAborted {
+  background: #fff0f0;
+  color: #9a3535;
+}
+
+.openButton {
+  padding: 7px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.openButton:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.error {
+  padding: 12px 14px;
+  border: 1px solid #d89c9c;
+  border-radius: var(--radius-small);
+  background: #fff3f3;
+  color: #8f2929;
+}
+
+@media (max-width: 900px) {
+  .content {
+    overflow-x: auto;
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
+  .content table {
+    min-width: 760px;
+  }
+}

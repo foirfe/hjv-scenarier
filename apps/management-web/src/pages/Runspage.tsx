@@ -94,7 +94,7 @@ export default function RunsPage() {
   };
 
 
-  //RUN STATUS HELPER FUNKTION
+  //RUN STATUS OG LABEL HELPER FUNKTION
   function runStatusLabel(
   status: RunStatus,
 ) {
@@ -112,7 +112,23 @@ export default function RunsPage() {
       return "Afbrudt";
   }
 }
+function runStatusClass(
+  status: RunStatus,
+) {
+  switch (status) {
+    case "NOT_STARTED":
+      return styles.statusNotStarted;
 
+    case "IN_PROGRESS":
+      return styles.statusInProgress;
+
+    case "COMPLETED":
+      return styles.statusCompleted;
+
+    case "ABORTED":
+      return styles.statusAborted;
+  }
+}
   return (
     <div className={styles.page}>
       <PageHeader
@@ -168,11 +184,7 @@ export default function RunsPage() {
             </td>
 
             <td>
-              <span
-                className={
-                  styles.statusBadge
-                }
-              >
+              <span className={`${styles.statusBadge} ${runStatusClass(run.status)}`}>
                 {runStatusLabel(
                   run.status,
                 )}

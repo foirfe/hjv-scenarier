@@ -7,6 +7,7 @@ import * as argon2 from 'argon2';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -32,6 +33,32 @@ export class UsersService {
         passwordHash,
         role: dto.role ?? 'USER',
       },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  async update(id: string, dto: UpdateUserDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Brugeren blev ikke fundet');
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+
+      data: dto,
+
       select: {
         id: true,
         username: true,

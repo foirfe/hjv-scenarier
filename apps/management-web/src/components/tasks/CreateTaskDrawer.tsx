@@ -1,6 +1,6 @@
 import { useEffect, useState, type SubmitEvent } from "react";
 import { apiFetch } from "../../api/apiFetch";
-import styles from "./CreateTaskDrawer.module.css";
+import styles from "./TaskDrawer.module.css";
 
 type TaskStatus = "ACTIVE" | "DRAFT" | "ARCHIVED";
 

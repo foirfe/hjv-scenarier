@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { apiFetch } from "../../api/apiFetch";
-import styles from "./CreateTaskDrawer.module.css";
+import styles from "./TaskDrawer.module.css";
 
 type TaskStatus = "ACTIVE" | "DRAFT" | "ARCHIVED";
 
@@ -87,15 +87,9 @@ export default function EditTaskDrawer({
 
   const [environmentId, setEnvironmentId] = useState("");
   const [taskTypeId, setTaskTypeId] = useState("");
-
-  const [status, setStatus] =
-    useState<TaskStatus>("ACTIVE");
-
-  const [answerType, setAnswerType] =
-    useState<AnswerType>("MULTIPLE_CHOICE");
-
-  const [options, setOptions] =
-    useState<TaskOptionDraft[]>(createEmptyOptions());
+  const [status, setStatus] = useState<TaskStatus>("ACTIVE");
+  const [answerType, setAnswerType] = useState<AnswerType>("MULTIPLE_CHOICE");
+  const [options, setOptions] = useState<TaskOptionDraft[]>(createEmptyOptions());
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -107,9 +101,6 @@ export default function EditTaskDrawer({
 
   const isQuiz = selectedTaskType?.code === "QUIZ";
 
-  /*
-   * Hent både formularens lookup-data og den konkrete task.
-   */
   useEffect(() => {
     if (!taskId) {
       return;
@@ -185,9 +176,7 @@ export default function EditTaskDrawer({
     };
   }, [taskId]);
 
-  /*
-   * Escape lukker drawer.
-   */
+
   useEffect(() => {
     if (!taskId) {
       return;
@@ -288,9 +277,6 @@ export default function EditTaskDrawer({
       return;
     }
 
-    /*
-     * Ekstra validation for multiple choice.
-     */
     if (
       isQuiz &&
       answerType === "MULTIPLE_CHOICE"
@@ -341,14 +327,6 @@ export default function EditTaskDrawer({
             Number(taskTypeId),
 
           status,
-
-          /*
-           * Quiz:
-           * gem answerType og evt. options.
-           *
-           * Ikke quiz:
-           * nulstil gamle quizdata.
-           */
           ...(isQuiz
             ? {
                 answerType,

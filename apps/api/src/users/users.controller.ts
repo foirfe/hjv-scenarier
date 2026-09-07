@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
 } from '@nestjs/common';
 import {
@@ -15,6 +16,7 @@ import {
 } from '@nestjs/swagger';
 
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
 import { UserRole } from '../../generated/prisma/enums';
 import { Roles } from '@/auth/decorators/roles.decorator';
@@ -79,5 +81,21 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Brugeren blev ikke fundet.' })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.usersService.findOne(id);
+  }
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Opdater en bruger',
+    description: 'Opdaterer navn, systemrolle eller status på en bruger.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Brugeren blev opdateret.',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Brugeren blev ikke fundet.',
+  })
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateUserDto) {
+    return this.usersService.update(id, dto);
   }
 }

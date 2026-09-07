@@ -4,7 +4,7 @@ import {
 } from "react";
 
 import { apiFetch } from "../../api/apiFetch";
-import styles from "./CreateUserDrawer.module.css";
+import styles from "./UserDrawer.module.css";
 
 type Props = {
   open: boolean;
@@ -17,23 +17,12 @@ export default function CreateUserDrawer({
   onClose,
   onCreated,
 }: Props) {
-  const [displayName, setDisplayName] =
-    useState("");
-
-  const [username, setUsername] =
-    useState("");
-
-  const [password, setPassword] =
-    useState("");
-
-  const [role, setRole] =
-    useState<"USER" | "ADMIN">("USER");
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"USER" | "ADMIN">("USER");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleSubmit(
     event: SubmitEvent,

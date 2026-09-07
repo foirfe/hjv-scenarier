@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import PageHeader from "../components/Pageheader";
 import { apiFetch } from "../api/apiFetch";
 import CreateUserDrawer from "../components/users/CreateUserDrawer";
+import EditUserDrawer from "../components/users/EditUserDrawer";
 import styles from "./Userspage.module.css";
 
 type UserRole = "USER" | "ADMIN";
@@ -24,47 +25,48 @@ export default function UsersPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | UserStatus>("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   function fetchUsers() {
-  return apiFetch<User[]>("/users");
-}
-
-async function loadUsers() {
-  try {
-    setLoading(true);
-    setError("");
-    const data = await fetchUsers();
-    setUsers(data);
-  } catch {
-    setError("Kunne ikke hente brugere");
-  } finally {
-    setLoading(false);
+    return apiFetch<User[]>("/users");
   }
-}
-useEffect(() => {
-  let cancelled = false;
-  fetchUsers()
-    .then((data) => {
-      if (!cancelled) {
-        setUsers(data);
-        setError("");
-      }
-    })
-    .catch(() => {
-      if (!cancelled) {
-        setError("Kunne ikke hente brugere");
-      }
-    })
-    .finally(() => {
-      if (!cancelled) {
-        setLoading(false);
-      }
-    });
 
-  return () => {
-    cancelled = true;
-  };
-}, []);
+  async function loadUsers() {
+    try {
+      setLoading(true);
+      setError("");
+      const data = await fetchUsers();
+      setUsers(data);
+    } catch {
+      setError("Kunne ikke hente brugere");
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    let cancelled = false;
+    fetchUsers()
+      .then((data) => {
+        if (!cancelled) {
+          setUsers(data);
+          setError("");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError("Kunne ikke hente brugere");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredUsers = users.filter((user) => {
     const value = search.toLowerCase();
@@ -91,6 +93,7 @@ useEffect(() => {
         description="Opret og administrér brugere"
         actions={
           <button
+            className={styles.createButton}
             onClick={() => setCreateOpen(true)}
           >
             + Tilføj bruger
@@ -151,7 +154,7 @@ useEffect(() => {
         {!loading && !error && (
           <>
             <span>
-              {filteredUsers.length === 1? "1 bruger": `${filteredUsers.length} brugere`}
+              {filteredUsers.length === 1 ? "1 bruger" : `${filteredUsers.length} brugere`}
             </span>
 
             <table>
@@ -178,14 +181,14 @@ useEffect(() => {
                     <td>{user.username}</td>
 
                     <td>
-                      {user.role === "ADMIN"? "Administrator": "Bruger"}
+                      {user.role === "ADMIN" ? "Administrator" : "Bruger"}
                     </td>
 
                     <td>
                       <span
-                        className={`${styles.statusBadge} ${user.status === "ACTIVE"? styles.activeStatus: styles.inactiveStatus }`}
+                        className={`${styles.statusBadge} ${user.status === "ACTIVE" ? styles.activeStatus : styles.inactiveStatus}`}
                       >
-                        {user.status === "ACTIVE"? "Aktiv": "Inaktiv"}
+                        {user.status === "ACTIVE" ? "Aktiv" : "Inaktiv"}
                       </span>
                     </td>
 
@@ -203,7 +206,7 @@ useEffect(() => {
                     </td>
 
                     <td>
-                      <button>
+                      <button onClick={() =>setEditingUser(user)} className={styles.editButton}>
                         Redigér
                       </button>
                     </td>
@@ -220,6 +223,14 @@ useEffect(() => {
         onClose={() => setCreateOpen(false)}
         onCreated={() => {
           setCreateOpen(false);
+          void loadUsers();
+        }}
+      />
+      <EditUserDrawer
+        user={editingUser}
+        onClose={() => setEditingUser(null)}
+        onUpdated={() => {
+          setEditingUser(null);
           void loadUsers();
         }}
       />

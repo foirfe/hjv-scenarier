@@ -11,6 +11,8 @@ import ScenarioBuilderPage from "./pages/ScenarioBuilderpage";
 import UsersPage from "./pages/Userspage";
 import ReportsPage from "./pages/Reportspage";
 import SettingsPage from "./pages/Settingspage";
+import RunsPage from "./pages/Runspage";
+
 
 export default function App() {
   return (
@@ -24,7 +26,8 @@ export default function App() {
           <Route path="/overview" element={<OverviewPage />} />
           <Route path="/tasks" element={<TasksPage />} />
           <Route path="/scenarios" element={<ScenariosPage />} />
-          <Route path="/scenarios/:scenarioId" element={<ScenarioBuilderPage/>}/>
+          <Route path="/scenarios/:scenarioId" element={<ScenarioBuilderPage />} />
+          <Route path="/runs" element={<RunsPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/settings" element={<SettingsPage />} />

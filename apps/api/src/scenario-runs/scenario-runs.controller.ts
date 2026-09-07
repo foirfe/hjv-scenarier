@@ -153,7 +153,16 @@ export class ScenarioRunsController {
   start(@Param('runId', ParseUUIDPipe) runId: string) {
     return this.scenarioRunsService.start(runId);
   }
-
+  //GET AF ALLE SCENARIERUNS
+  @Get()
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Hent alle scenario runs',
+    description: 'Returnerer alle scenarieafviklinger.',
+  })
+  findAll() {
+    return this.scenarioRunsService.findAll();
+  }
   @Patch(':runId/tasks/:runTaskId/activate')
   @ApiOperation({
     summary: 'Aktivere en opgave',

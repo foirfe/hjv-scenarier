@@ -160,6 +160,38 @@ export class ScenarioRunsService {
     }
     return scenarioRun;
   }
+  //TIL ADMIN DELEN SE ALLE SCENARIE RUNS
+  findAll() {
+    return this.prisma.scenarioRun.findMany({
+      select: {
+        id: true,
+        status: true,
+        startedAt: true,
+        completedAt: true,
+        createdAt: true,
+        updatedAt: true,
+
+        scenario: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+          },
+        },
+
+        _count: {
+          select: {
+            users: true,
+            tasks: true,
+          },
+        },
+      },
+
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
   //Update UserRole In ScenarioRun
   async updateScenarioRunUser(
     scenarioRunId: string,
@@ -789,14 +821,10 @@ export class ScenarioRunsService {
       status: run.status,
       startedAt: run.startedAt,
       completedAt: run.completedAt,
-
       role: runUser.role,
-
       scenario: run.scenario,
-
       tasks: run.tasks.map((task) => {
         const progress = task.progress[0] ?? null;
-
         return {
           id: task.id,
           name: task.name,

@@ -92,12 +92,14 @@ export default function UsersPage() {
         title="Deltagere"
         description="Opret og administrér brugere"
         actions={
+          <div className={styles.actionButtons}>
           <button
             className={styles.createButton}
             onClick={() => setCreateOpen(true)}
           >
             + Tilføj bruger
           </button>
+          </div>
         }
       />
       <section className={styles.statusTabs}>

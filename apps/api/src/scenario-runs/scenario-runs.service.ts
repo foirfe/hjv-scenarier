@@ -153,6 +153,26 @@ export class ScenarioRunsService {
             },
           },
         },
+        tasks: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+          select: {
+            id: true,
+            name: true,
+            activationMode: true,
+
+            progress: {
+              select: {
+                userId: true,
+                status: true,
+                availableAt: true,
+                startedAt: true,
+                completedAt: true,
+              },
+            },
+          },
+        },
       },
     });
     if (!scenarioRun) {

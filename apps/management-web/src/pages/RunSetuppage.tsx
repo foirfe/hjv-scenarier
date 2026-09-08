@@ -7,6 +7,8 @@ type ScenarioRole = "PARTICIPANT" | "TEAM_LEADER" | "INSTRUCTOR";
 
 type RunStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "ABORTED";
 
+type TaskProgressStatus = "LOCKED" | "AVAILABLE" | "ACTIVE" | "COMPLETED";
+
 type User = {
   id: string;
   username: string;
@@ -27,6 +29,7 @@ type ScenarioRun = {
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
+  tasks: RunTask[];
   scenario: {
     id: string;
     name: string;
@@ -36,6 +39,25 @@ type ScenarioRun = {
   users: RunUser[];
 };
 
+type RunTaskProgress = {
+  userId: string;
+  status: TaskProgressStatus;
+  availableAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+};
+
+type RunTask = {
+  id: string;
+  name: string;
+  activationMode:
+  | "GEO"
+  | "AUTOMATIC"
+  | "MANUAL";
+
+  progress: RunTaskProgress[];
+};
+//HELPERS
 function runStatusLabel(status: RunStatus): string {
   switch (status) {
     case "NOT_STARTED":
@@ -49,6 +71,48 @@ function runStatusLabel(status: RunStatus): string {
     default:
       return status;
   }
+}
+
+function scenarioRoleLabel(
+  role: ScenarioRole,
+) {
+  switch (role) {
+    case "PARTICIPANT":
+      return "Deltager";
+
+    case "TEAM_LEADER":
+      return "Holdleder";
+
+    case "INSTRUCTOR":
+      return "Instruktør";
+  }
+}
+
+function getUserProgress(
+  run: ScenarioRun,
+  userId: string,
+) {
+  const progress = run.tasks.flatMap(
+    (task) =>
+      task.progress.filter(
+        (row) => row.userId === userId,
+      ),
+  );
+
+  const completed = progress.filter((row) => row.status === "COMPLETED",).length;
+  const active = progress.filter((row) => row.status === "ACTIVE",).length;
+  const available = progress.filter((row) => row.status === "AVAILABLE",).length;
+  const locked = progress.filter((row) => row.status === "LOCKED",).length;
+  const total = progress.length;
+  const percentage = total === 0 ? 0 : Math.round((completed / total) * 100,);
+  return {
+    completed,
+    active,
+    available,
+    locked,
+    total,
+    percentage,
+  };
 }
 
 export default function RunSetupPage() {
@@ -190,8 +254,40 @@ export default function RunSetupPage() {
   }
 
   if (!run) {
-    return <div className={styles.runSetupPage}>Afviklingen blev ikke fundet.</div>;
+    return (
+      <div className={styles.runSetupPage}>
+        Afviklingen blev ikke fundet.
+      </div>
+    );
   }
+
+  const trackedUsers = run.users.filter(
+    (runUser) =>
+      runUser.role !== "INSTRUCTOR",
+  );
+
+  const instructorCount = run.users.filter(
+    (runUser) =>
+      runUser.role === "INSTRUCTOR",
+  ).length;
+
+  const allProgress = run.tasks.flatMap(
+    (task) => task.progress,
+  );
+
+  const completedProgress = allProgress.filter(
+    (progress) =>
+      progress.status === "COMPLETED",
+  ).length;
+
+  const overallPercentage =
+    allProgress.length === 0
+      ? 0
+      : Math.round(
+        (completedProgress /
+          allProgress.length) *
+        100,
+      );
 
   return (
     <div className={styles.runSetupPage}>
@@ -225,101 +321,401 @@ export default function RunSetupPage() {
 
       {error && <p className={styles.errorMessage}>{error}</p>}
 
-      <section className={styles.usersSection}>
-        <div className={styles.sectionHeader}>
-          <div>
-            <h2>Brugere</h2>
-            <p>Tildel roller til deltagerne før afviklingen startes.</p>
+      {run.status === "NOT_STARTED" ? (
+        <section className={styles.usersSection}>
+          <div className={styles.sectionHeader}>
+            <div>
+              <h2>Brugere</h2>
+              <p>
+                Tildel roller til deltagerne før
+                afviklingen startes.
+              </p>
+            </div>
+
+            <span>
+              {run.users.length} brugere
+            </span>
           </div>
 
-          <span>{run.users.length} brugere</span>
-        </div>
-
-        {run.status === "NOT_STARTED" && (
           <div className={styles.addUser}>
             <select
               value={selectedUserId}
-              onChange={(e) => setSelectedUserId(e.target.value)}
+              onChange={(event) =>
+                setSelectedUserId(
+                  event.target.value,
+                )
+              }
             >
-              <option value="">Vælg bruger...</option>
-              {availableUsers.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.displayName} - {u.username}
+              <option value="">
+                Vælg bruger...
+              </option>
+
+              {availableUsers.map((user) => (
+                <option
+                  key={user.id}
+                  value={user.id}
+                >
+                  {user.displayName} -{" "}
+                  {user.username}
                 </option>
               ))}
             </select>
 
             <select
               value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value as ScenarioRole)}
+              onChange={(event) =>
+                setSelectedRole(
+                  event.target.value as ScenarioRole,
+                )
+              }
             >
-              <option value="PARTICIPANT">Deltager</option>
-              <option value="TEAM_LEADER">Holdleder</option>
-              <option value="INSTRUCTOR">Instruktør</option>
+              <option value="PARTICIPANT">
+                Deltager
+              </option>
+
+              <option value="TEAM_LEADER">
+                Holdleder
+              </option>
+
+              <option value="INSTRUCTOR">
+                Instruktør
+              </option>
             </select>
 
             <button
-              disabled={!selectedUserId || savingUser}
-              onClick={() => void addUser()}
+              disabled={
+                !selectedUserId ||
+                savingUser
+              }
+              onClick={() =>
+                void addUser()
+              }
             >
-              {savingUser ? "Tilføjer..." : "+ Tilføj"}
+              {savingUser
+                ? "Tilføjer..."
+                : "+ Tilføj"}
             </button>
           </div>
-        )}
 
-        <div className={styles.tableWrapper}>
-          <table>
-            <thead>
-              <tr>
-                <th>Navn</th>
-                <th>Brugernavn</th>
-                <th>Rolle i afviklingen</th>
-                <th></th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {run.users.map((runUser) => (
-                <tr key={runUser.user.id}>
-                  <td>
-                    <strong>{runUser.user.displayName}</strong>
-                  </td>
-
-                  <td>{runUser.user.username}</td>
-
-                  <td>
-                    <select
-                      value={runUser.role}
-                      disabled={run.status !== "NOT_STARTED"}
-                      onChange={(e) =>
-                        void updateUserRole(
-                          runUser.user.id,
-                          e.target.value as ScenarioRole
-                        )
-                      }
-                    >
-                      <option value="PARTICIPANT">Deltager</option>
-                      <option value="TEAM_LEADER">Holdleder</option>
-                      <option value="INSTRUCTOR">Instruktør</option>
-                    </select>
-                  </td>
-
-                  <td>
-                    {run.status === "NOT_STARTED" && (
-                      <button
-                        className={styles.removeButton}
-                        onClick={() => void removeUser(runUser.user)}
-                      >
-                        Fjern
-                      </button>
-                    )}
-                  </td>
+          <div className={styles.tableWrapper}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Navn</th>
+                  <th>Brugernavn</th>
+                  <th>Rolle i afviklingen</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </thead>
+
+              <tbody>
+                {run.users.map(
+                  (runUser) => (
+                    <tr key={runUser.user.id}>
+                      <td>
+                        <strong>
+                          {runUser.user.displayName}
+                        </strong>
+                      </td>
+
+                      <td>
+                        {runUser.user.username}
+                      </td>
+
+                      <td>
+                        <select
+                          value={
+                            runUser.role
+                          }
+                          onChange={(
+                            event,
+                          ) =>
+                            void updateUserRole(
+                              runUser.user.id,
+                              event.target
+                                .value as ScenarioRole,
+                            )
+                          }
+                        >
+                          <option value="PARTICIPANT">
+                            Deltager
+                          </option>
+
+                          <option value="TEAM_LEADER">
+                            Holdleder
+                          </option>
+
+                          <option value="INSTRUCTOR">
+                            Instruktør
+                          </option>
+                        </select>
+                      </td>
+
+                      <td>
+                        <button className={styles.removeButton }
+                          onClick={() =>void removeUser(runUser.user,)}>
+                          Fjern
+                        </button>
+                      </td>
+                    </tr>
+                  ),
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : (
+        <section className={styles.overview}>
+
+          <div className={styles.metrics}>
+            <article className={styles.metricCard} >
+              <span>Deltagere</span>
+
+              <strong>
+                {trackedUsers.length}
+              </strong>
+
+              <small>
+                {instructorCount}{" "}
+                instruktør(er)
+              </small>
+            </article>
+
+            <article className={styles.metricCard} >
+              <span>Opgaver</span>
+
+              <strong>
+                {run.tasks.length}
+              </strong>
+
+              <small>
+                Snapshot af scenariet
+              </small>
+            </article>
+
+            <article className={styles.metricCard}>
+              <span>Samlet fremgang</span>
+
+              <strong>
+                {overallPercentage}%
+              </strong>
+
+              <small>
+                {completedProgress} /{" "}
+                {allProgress.length}{" "}
+                gennemført
+              </small>
+            </article>
+
+            <article className={styles.metricCard}>
+              <span>Startet</span>
+
+              <strong
+                className={styles.metricDate}
+              >
+                {run.startedAt
+                  ? new Intl.DateTimeFormat(
+                    "da-DK",
+                    {
+                      dateStyle:
+                        "short",
+                      timeStyle:
+                        "short",
+                    },
+                  ).format(
+                    new Date(
+                      run.startedAt,
+                    ),
+                  )
+                  : "—"}
+              </strong>
+            </article>
+          </div>
+
+
+          <div className={ styles.overviewSection}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <h2>Deltagerstatus</h2>
+
+                <p>
+                  Fremgang for brugerne i
+                  den aktuelle
+                  afvikling.
+                </p>
+              </div>
+
+              <button
+                className={styles.refreshButton}
+                onClick={() =>void loadRun()}>
+                Opdater
+              </button>
+            </div>
+
+            <div className={styles.tableWrapper}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Navn</th>
+                    <th>Rolle</th>
+                    <th>
+                      Gennemført
+                    </th>
+                    <th>Aktive</th>
+                    <th>Fremgang</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {run.users.map(
+                    (runUser) => {const progress = getUserProgress(run,runUser.user.id,);
+
+                      return (
+                        <tr key={runUser.user.id}>
+                          <td>
+                            <strong>
+                              {runUser.user.displayName}
+                            </strong>
+
+                            <small
+                              className={styles.username}>
+                              {runUser.user.username}
+                            </small>
+                          </td>
+
+                          <td>
+                            {scenarioRoleLabel(runUser.role,)}
+                          </td>
+
+                          {runUser.role ===
+                            "INSTRUCTOR" ? (
+                            <>
+                              <td>—</td>
+                              <td>—</td>
+
+                              <td
+                                className={styles.muted}>
+                                Ingen
+                                opgaveprogress
+                              </td>
+                            </>
+                          ) : (
+                            <>
+                              <td>
+                                {
+                                  progress.completed
+                                }{" "}
+                                /{" "}
+                                { progress.total}
+                              </td>
+
+                              <td>
+                                {progress.active}
+                              </td>
+
+                              <td>
+                                <div
+                                  className={styles.progressCell}>
+                                  <div className={styles.progressTrack} >
+                                    <div
+                                      className={ styles.progressValue}
+                                      style={{ width: `${progress.percentage}%`,}}
+                                    />
+                                  </div>
+
+                                  <span> { progress.percentage } % </span>
+                                </div>
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      );
+                    },
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div
+            className={styles.overviewSection}>
+            <div className={styles.sectionHeader}>
+              <div>
+                <h2>Opgavestatus</h2>
+
+                <p>
+                  Status på tværs af alle
+                  deltagere.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.tableWrapper}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Opgave</th>
+                    <th>
+                      Aktivering
+                    </th>
+                    <th>
+                      Gennemført
+                    </th>
+                    <th>Aktive</th>
+                    <th>
+                      Tilgængelige
+                    </th>
+                    <th>Låste</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {run.tasks.map(
+                    (task) => {const completed =task.progress.filter((row) => row.status === "COMPLETED",).length;
+
+                      const active = task.progress.filter((row) => row.status === "ACTIVE",).length;
+
+                      const available = task.progress.filter((row) => row.status === "AVAILABLE",).length;
+
+                      const locked = task.progress.filter((row) => row.status === "LOCKED",).length;
+
+                      return (
+                        <tr key={task.id}>
+                          <td>
+                            <strong>
+                              {task.name}
+                            </strong>
+                          </td>
+
+                          <td>
+                            {task.activationMode ==="GEO" ? "GPS": task.activationMode === "AUTOMATIC" ? "Automatisk": "Manuel"}
+                          </td>
+
+                          <td>
+                            {completed}
+                          </td>
+
+                          <td>
+                            {active}
+                          </td>
+
+                          <td>
+                            {available}
+                          </td>
+
+                          <td>
+                            {locked}
+                          </td>
+                        </tr>
+                      );
+                    },
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

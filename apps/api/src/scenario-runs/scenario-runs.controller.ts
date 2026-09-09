@@ -105,7 +105,17 @@ export class ScenarioRunsController {
   ) {
     return this.scenarioRunsService.removeScenarioRunUser(runId, dto);
   }
-  //GET ME
+  //HENT ALLE SCENARIE RUNS FOR BRUGER
+  @Get('me')
+  @ApiOperation({
+    summary: 'Hent mine scenario runs',
+    description:
+      'Returnerer de scenario runs den indloggede bruger er tilknyttet.',
+  })
+  findMyRuns(@Req() request: AuthenticatedRequest) {
+    return this.scenarioRunsService.findMyRuns(request.user.sub);
+  }
+  //GET ME FRA SCENARIE RUN
   @Get(':runId/me')
   @ApiOperation({
     summary: 'Hent min scenario run',

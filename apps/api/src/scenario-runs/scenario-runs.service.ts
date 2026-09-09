@@ -761,6 +761,39 @@ export class ScenarioRunsService {
       startedAt,
     };
   }
+  //FINDER BRUGERS RUNS
+  findMyRuns(userId: string) {
+    return this.prisma.scenarioRunUser.findMany({
+      where: {
+        userId,
+      },
+
+      select: {
+        role: true,
+
+        scenarioRun: {
+          select: {
+            id: true,
+            status: true,
+            startedAt: true,
+            completedAt: true,
+
+            scenario: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+              },
+            },
+          },
+        },
+      },
+
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
   //FUNKTION TIL AT FINDE BRUGER MED ROLLE
   async findMe(runId: string, userId: string) {
     const runUser = await this.prisma.scenarioRunUser.findUnique({

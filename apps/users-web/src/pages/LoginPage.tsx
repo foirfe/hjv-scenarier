@@ -1,37 +1,19 @@
-import {
-  useState,
-  type SubmitEvent,
-} from "react";
-
-import {
-  Navigate,
-  useNavigate,
-} from "react-router";
-
+import {useState, type SubmitEvent} from "react";
+import {Navigate, useNavigate} from "react-router";
 import { useAuth } from "../auth/useAuth";
+import styles from "./LoginPage.module.css";
 
 export default function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
-
-  const [username, setUsername] =
-    useState("");
-
-  const [password, setPassword] =
-    useState("");
-
-  const [error, setError] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   if (user) {
     return (
-      <Navigate
-        to="/runs"
-        replace
-      />
+      <Navigate to="/runs" replace/>
     );
   }
 
@@ -61,15 +43,23 @@ export default function LoginPage() {
   }
 
   return (
-    <main>
-      <h1>HJV Scenarier</h1>
+  <main className={styles.page}>
+    <section className={styles.card}>
+      <header className={styles.header}>
+        <div className={styles.brand}>
+          HJEMMEVÆRNSSKOLEN
+        </div>
 
-      <p>Log ind for at fortsætte</p>
+        <h1>HJV Øvelsessystem</h1>
 
-      <form onSubmit={handleSubmit}>
-        <label>
-          Brugernavn
+        <p>
+          Log ind for at se dine øvelser.
+        </p>
+      </header>
 
+      <form className={styles.form} onSubmit={handleSubmit}>
+        <label className={styles.field}>
+          <span>Brugernavn</span>
           <input
             type="text"
             value={username}
@@ -79,8 +69,8 @@ export default function LoginPage() {
           />
         </label>
 
-        <label>
-          Adgangskode
+        <label className={styles.field}>
+          <span>Adgangskode</span>
 
           <input
             type="password"
@@ -92,18 +82,22 @@ export default function LoginPage() {
         </label>
 
         {error && (
-          <p role="alert">
+          <p className={styles.error} role="alert">
             {error}
           </p>
         )}
 
         <button
+          className={styles.submit}
           type="submit"
           disabled={loading}
         >
-          {loading ? "Logger ind..." : "Log ind"}
+          {loading
+            ? "Logger ind..."
+            : "Log ind"}
         </button>
       </form>
-    </main>
-  );
+    </section>
+  </main>
+);
 }

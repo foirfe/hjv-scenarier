@@ -889,28 +889,47 @@ export class ScenarioRunsService {
       scenario: run.scenario,
       tasks: run.tasks.map((task) => {
         const progress = task.progress[0] ?? null;
+        const status = progress?.status ?? null;
+        const isUnlocked =
+          status !== TaskProgressStatus.LOCKED && status !== null;
+
+        const canSeeContent =
+          status === TaskProgressStatus.ACTIVE ||
+          status === TaskProgressStatus.COMPLETED;
+
+        const canSeeLocation =
+          status === TaskProgressStatus.AVAILABLE &&
+          task.activationMode === ActivationMode.GEO;
         return {
           id: task.id,
-          name: task.name,
-          description: task.description,
-          instructions: task.instructions,
-          answerType: task.answerType,
-          taskTypeCode: task.taskTypeCode,
 
-          activationMode: task.activationMode,
+          name: isUnlocked ? task.name : 'Låst opgave',
 
-          latitude: task.latitude,
-          longitude: task.longitude,
-          radiusMeters: task.radiusMeters,
+          activationMode: isUnlocked ? task.activationMode : null,
 
-          status: progress?.status ?? null,
+          status,
+
           availableAt: progress?.availableAt ?? null,
+
           startedAt: progress?.startedAt ?? null,
+
           completedAt: progress?.completedAt ?? null,
 
-          options: task.options,
+          description: canSeeContent ? task.description : null,
 
-          dependencies: task.dependencies,
+          instructions: canSeeContent ? task.instructions : null,
+
+          answerType: canSeeContent ? task.answerType : null,
+
+          taskTypeCode: canSeeContent ? task.taskTypeCode : null,
+
+          options: canSeeContent ? task.options : [],
+
+          latitude: canSeeLocation ? task.latitude : null,
+
+          longitude: canSeeLocation ? task.longitude : null,
+
+          radiusMeters: canSeeLocation ? task.radiusMeters : null,
         };
       }),
     };

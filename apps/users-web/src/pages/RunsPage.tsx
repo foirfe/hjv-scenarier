@@ -4,6 +4,7 @@ import {useNavigate} from "react-router";
 
 import { apiFetch } from "../api/apiFetch";
 import { useAuth } from "../auth/useAuth";
+import styles from "./RunsPage.module.css";
 
 type ScenarioRole =
   | "PARTICIPANT"
@@ -67,11 +68,8 @@ function getRoleLabel(
 export default function RunsPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
   const [runs, setRuns] = useState<MyRun[]>([]);
-
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -109,51 +107,72 @@ export default function RunsPage() {
     return <p>Henter øvelser...</p>;
   }
 
-  return (
-    <main>
-      <header>
-        <div>
-          <p>Logget ind som</p>
-          <strong>
-            {user?.displayName}
-          </strong>
-        </div>
+return (
+  <main className={styles.page}>
+    <header className={styles.topbar}>
+      <div>
+        <span className={styles.userLabel}>
+          Logget ind som
+        </span>
 
-        <button
-          type="button"
-          onClick={logout}
-        >
-          Log ud
-        </button>
-      </header>
+        <strong>
+          {user?.displayName}
+        </strong>
+      </div>
 
-      <section>
+      <button
+        className={styles.logout}
+        type="button"
+        onClick={logout}
+      >
+        Log ud
+      </button>
+    </header>
+
+    <section>
+      <header className={styles.pageHeader}>
         <h1>Mine øvelser</h1>
 
         <p>
-          Her kan du se de scenarieafviklinger, du er tilknyttet.
+          Se de øvelser du er
+          tilknyttet.
         </p>
+      </header>
 
-        {error && (
-          <p role="alert">
-            {error}
-          </p>
+      {error && (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      )}
+
+      {!error &&
+        runs.length === 0 && (
+          <div className={styles.empty}>
+            <strong>
+              Ingen øvelser endnu
+            </strong>
+
+            <p>
+              Du er ikke tilknyttet
+              nogen øvelser.
+            </p>
+          </div>
         )}
 
-        {!error &&
-          runs.length === 0 && (
-            <p> Du er ikke tilknyttet nogen øvelser endnu.</p>
-          )}
-
+      <div className={styles.runList}>
         {runs.map(
-          ({ role, scenarioRun }) => (
-            <article key={scenarioRun.id}>
-              <div>
-                <span>
-                  {getStatusLabel(scenarioRun.status)}
+          ({
+            role,
+            scenarioRun}) => (
+            <article className={styles.runCard} key={scenarioRun.id}>
+              <div className={styles.cardMeta}>
+                <span className={`${styles.badge} ${styles[ `status_${scenarioRun.status}`]}`}>
+                  {getStatusLabel(
+                    scenarioRun.status,
+                  )}
                 </span>
 
-                <span>
+                <span className={styles.role}>
                   {getRoleLabel(role)}
                 </span>
               </div>
@@ -162,22 +181,25 @@ export default function RunsPage() {
                 {scenarioRun.scenario.name}
               </h2>
 
-              {scenarioRun.scenario.description && (
-                <p>
+              {scenarioRun.scenario
+                .description && (
+                <p className={styles.description}>
                   {scenarioRun.scenario.description}
                 </p>
               )}
 
               <button
+                className={styles.openButton}
                 type="button"
-                onClick={() => navigate( `/runs/${scenarioRun.id}`)}>
-                {scenarioRun.status === "IN_PROGRESS" ? "Fortsæt øvelse" : "Se øvelse"}
+                onClick={() =>navigate(`/runs/${scenarioRun.id}`)}>
+                {scenarioRun.status ==="IN_PROGRESS" ? "Fortsæt øvelse" : "Se øvelse"}
               </button>
             </article>
           ),
         )}
-      </section>
-    </main>
-  );
+      </div>
+    </section>
+  </main>
+);
 }
 

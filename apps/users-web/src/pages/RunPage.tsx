@@ -1,7 +1,12 @@
-import {useEffect, useState} from "react";
+import {useEffect, useState, useCallback} from "react";
 import {useNavigate, useParams} from "react-router";
 import { apiFetch } from "../api/apiFetch";
 import TaskCard from "../components/TaskCard";
+import GpsStatus from "../components/GpsStatus";
+import {useGeolocation} from "../hooks/useGeolocation";
+import GeoGuide from "../components/GeoGuide";
+import {useDeviceHeading} from "../hooks/useDeviceHeading";
+import {useGeoTaskActivation,} from "../hooks/useGeoTaskActivation";
 import type {RunDetail, ScenarioRole,ScenarioRunStatus} from "../types/scenarioRun";
 import styles from "./RunPage.module.css";
 
@@ -43,6 +48,7 @@ export default function RunPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+
   useEffect(() => {
   let cancelled = false;
   apiFetch<RunDetail>(
@@ -73,6 +79,28 @@ export default function RunPage() {
   };
 }, [runId]);
 
+  const refreshRun =
+  useCallback(async () => {
+    if (!runId) {
+      return;
+    }
+    const data =
+      await apiFetch<RunDetail>(
+        `/scenario-runs/${runId}/me`,
+      );
+
+    setRun(data);
+  }, [runId]);
+
+  const needsGps = run?.status === "IN_PROGRESS" && run.role !== "INSTRUCTOR" && run.tasks.some(
+    (task) =>
+      task.status === "AVAILABLE" &&
+      task.activationMode === "GEO",
+  );
+
+  const {supported: gpsSupported, position, error: gpsError, locating,} = useGeolocation(needsGps ?? false);
+  const {activationError} = useGeoTaskActivation({runId: runId ?? "", run, position, onActivated: refreshRun});
+  const {heading,enabled: compassEnabled, error: compassError,requestPermission:enableCompass} = useDeviceHeading();
   if (!runId) {
   return (
     <main>
@@ -151,26 +179,53 @@ export default function RunPage() {
         </section>
       )}
 
-      {run.status === "IN_PROGRESS" && (
-        <section>
-          <h2>Opgaver</h2>
-          {run.role === "INSTRUCTOR" ? (
-            <p>
-              Du deltager som instruktør
-              i denne afvikling.
-            </p>
-          ) : (
-            <div className={styles.taskList}>
-              {run.tasks.map(
-                (task) => (
-                  <TaskCard key={task.id} task={task}
-                  />
-                ),
-              )}
-            </div>
-          )}
-        </section>
-      )}
+    {run.status === "IN_PROGRESS" && (
+    <section>
+    <h2>Opgaver</h2>
+
+    {needsGps && (
+  <>
+    <GpsStatus
+      supported={gpsSupported}
+      locating={locating}
+      position={position}
+      error={gpsError}
+      activationError={
+        activationError
+      }
+    />
+
+    <GeoGuide
+      tasks={run.tasks}
+      position={position}
+      heading={heading}
+      compassEnabled={
+        compassEnabled
+      }
+      onEnableCompass={
+        enableCompass
+      }
+      compassError={
+        compassError
+      }
+    />
+  </>
+)}
+
+    {run.role === "INSTRUCTOR" ? (
+      <p>
+        Du deltager som instruktør
+        i denne afvikling.
+      </p>
+    ) : (
+      <div className={styles.taskList}>
+        {run.tasks.map((task) => (
+          <TaskCard key={task.id} task={task}/>
+          ))}
+      </div>
+    )}
+  </section>
+)}
 
       {run.status ===
         "COMPLETED" && (

@@ -53,7 +53,6 @@ export type RunTask = {
   startedAt: string | null;
   completedAt: string | null;
 
-  options: RunTaskOption[];
 
   dependencies: {
     prerequisiteRunTaskId: string;

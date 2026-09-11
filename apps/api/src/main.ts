@@ -14,6 +14,7 @@ async function bootstrap() {
   app.enableCors({
     origin: allowedOrigins,
   });
+  console.log('Allowed CORS origins:', allowedOrigins);
   const config = new DocumentBuilder()
     .setTitle('HJV Scenarier API')
     .setDescription('API til opgaver, scenarier og scenarieafvikling')

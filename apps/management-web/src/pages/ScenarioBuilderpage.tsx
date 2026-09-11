@@ -3,7 +3,7 @@ import {useCallback, useEffect, useState} from "react";
 import {useNavigate,useParams} from "react-router";
 
 import { apiFetch } from "../api/apiFetch";
-import styles from "./ScenarioBuilderPage.module.css";
+import styles from "./ScenarioBuilderpage.module.css";
 import ConfigureScenarioTaskDrawer from "../components/scenarios/ConfigureScenarioTaskDrawer";
 
 type ActivationMode =

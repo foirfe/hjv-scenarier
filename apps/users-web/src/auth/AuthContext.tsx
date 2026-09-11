@@ -4,13 +4,10 @@ import {
   type ReactNode,
 } from "react";
 
-import {
-  AuthContext,
-  type User,
-} from "./auth-context";
+import { AuthContext, type User} from "./auth-context";
 import { apiFetch } from "../api/apiFetch";
 
-const API_URL = "http://localhost:3000";
+import { API_URL } from "../config";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

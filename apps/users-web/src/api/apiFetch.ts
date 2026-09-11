@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000";
+import { API_URL } from "../config";
 
 export async function apiFetch<T>(
 path: string,

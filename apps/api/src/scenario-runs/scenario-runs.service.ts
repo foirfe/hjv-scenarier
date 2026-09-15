@@ -19,6 +19,7 @@ import { RemoveScenarioRunUserDto } from './dto/remove-scenario-run-user.dto';
 import { UpdateScenarioRunUserDto } from './dto/update-scenario-run.user.dto';
 import { ActivateScenarioRunTaskDto } from './dto/activate-scenario-run-task.dto';
 import { SubmitTaskAnswerDto } from './dto/submit-task-answer.dto';
+import { UpdateChecklistItemDto } from './dto/update-checklist-item.dto';
 
 @Injectable()
 export class ScenarioRunsService {
@@ -275,7 +276,18 @@ export class ScenarioRunsService {
                 task: {
                   include: {
                     taskType: true,
-                    options: true,
+
+                    options: {
+                      orderBy: {
+                        sortOrder: 'asc',
+                      },
+                    },
+
+                    checklistItems: {
+                      orderBy: {
+                        sortOrder: 'asc',
+                      },
+                    },
                   },
                 },
                 dependencies: true,
@@ -348,6 +360,13 @@ export class ScenarioRunsService {
                 optionText: option.optionText,
                 isCorrect: option.isCorrect,
                 sortOrder: option.sortOrder,
+              })),
+            },
+            checklistItems: {
+              create: scenarioTask.task.checklistItems.map((item) => ({
+                sourceChecklistItemId: item.id,
+                itemText: item.itemText,
+                sortOrder: item.sortOrder,
               })),
             },
           },
@@ -476,7 +495,15 @@ export class ScenarioRunsService {
       },
 
       include: {
-        scenarioRunTask: true,
+        scenarioRunTask: {
+          include: {
+            checklistItems: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -492,6 +519,30 @@ export class ScenarioRunsService {
 
     if (progress.status !== TaskProgressStatus.ACTIVE) {
       throw new BadRequestException('Kun en aktiv opgave kan færdiggøres');
+    }
+    //SIKRER AT ALLE CHECKS ER MARKERET FØR MAN KAN FÆRDDIGGØRE OPGAVEN
+    if (progress.scenarioRunTask.taskTypeCode === 'CHECKLIST') {
+      const checklistItems = progress.scenarioRunTask.checklistItems;
+
+      if (checklistItems.length === 0) {
+        throw new BadRequestException('Tjeklisten indeholder ingen punkter');
+      }
+
+      const checkedIds = Array.isArray(progress.checkedChecklistItemIds)
+        ? progress.checkedChecklistItemIds.filter(
+            (id): id is string => typeof id === 'string',
+          )
+        : [];
+
+      const allChecked = checklistItems.every((item) =>
+        checkedIds.includes(item.id),
+      );
+
+      if (!allChecked) {
+        throw new BadRequestException(
+          'Alle punkter på tjeklisten skal være gennemført',
+        );
+      }
     }
 
     const completedAt = new Date();
@@ -841,14 +892,23 @@ export class ScenarioRunsService {
                   orderBy: {
                     sortOrder: 'asc',
                   },
-
                   select: {
                     id: true,
                     optionText: true,
                     sortOrder: true,
                   },
                 },
+                checklistItems: {
+                  orderBy: {
+                    sortOrder: 'asc',
+                  },
 
+                  select: {
+                    id: true,
+                    itemText: true,
+                    sortOrder: true,
+                  },
+                },
                 dependencies: {
                   select: {
                     prerequisiteRunTaskId: true,
@@ -865,6 +925,7 @@ export class ScenarioRunsService {
                     availableAt: true,
                     startedAt: true,
                     completedAt: true,
+                    checkedChecklistItemIds: true,
                   },
                 },
               },
@@ -897,6 +958,14 @@ export class ScenarioRunsService {
         const canSeeContent =
           status === TaskProgressStatus.ACTIVE ||
           status === TaskProgressStatus.COMPLETED;
+
+        const checkedChecklistItemIds = Array.isArray(
+          progress?.checkedChecklistItemIds,
+        )
+          ? progress.checkedChecklistItemIds.filter(
+              (id): id is string => typeof id === 'string',
+            )
+          : [];
 
         const canSeeLocation =
           status === TaskProgressStatus.AVAILABLE &&
@@ -931,6 +1000,16 @@ export class ScenarioRunsService {
           longitude: canSeeLocation ? task.longitude : null,
 
           radiusMeters: canSeeLocation ? task.radiusMeters : null,
+
+          checklistItems:
+            canSeeContent && task.taskTypeCode === 'CHECKLIST'
+              ? task.checklistItems
+              : [],
+
+          checkedChecklistItemIds:
+            canSeeContent && task.taskTypeCode === 'CHECKLIST'
+              ? checkedChecklistItemIds
+              : [],
         };
       }),
     };
@@ -1092,6 +1171,102 @@ export class ScenarioRunsService {
         'Deltagere og roller kan kun ændres før scenarieafviklingen er startet',
       );
     }
+  }
+  //OPDATERE CHECKLISTE
+  async updateChecklistItem(
+    runId: string,
+    runTaskId: string,
+    itemId: string,
+    userId: string,
+    dto: UpdateChecklistItemDto,
+  ) {
+    const progress = await this.prisma.scenarioRunTaskProgress.findUnique({
+      where: {
+        scenarioRunTaskId_userId: {
+          scenarioRunTaskId: runTaskId,
+          userId,
+        },
+      },
+
+      include: {
+        scenarioRunTask: {
+          include: {
+            checklistItems: true,
+
+            scenarioRun: {
+              select: {
+                status: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!progress) {
+      throw new NotFoundException('Opgaven blev ikke fundet for denne bruger');
+    }
+
+    const task = progress.scenarioRunTask;
+
+    if (task.scenarioRunId !== runId) {
+      throw new BadRequestException(
+        'Opgaven tilhører ikke denne scenarieafvikling',
+      );
+    }
+
+    if (task.scenarioRun.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Scenarieafviklingen er ikke i gang');
+    }
+
+    if (progress.status !== TaskProgressStatus.ACTIVE) {
+      throw new BadRequestException('Kun en aktiv tjekliste kan ændres');
+    }
+
+    if (task.taskTypeCode !== 'CHECKLIST') {
+      throw new BadRequestException('Opgaven er ikke en tjekliste');
+    }
+
+    const checklistItem = task.checklistItems.find(
+      (item) => item.id === itemId,
+    );
+
+    if (!checklistItem) {
+      throw new NotFoundException('Tjeklistepunktet blev ikke fundet');
+    }
+
+    const currentIds = Array.isArray(progress.checkedChecklistItemIds)
+      ? progress.checkedChecklistItemIds.filter(
+          (id): id is string => typeof id === 'string',
+        )
+      : [];
+
+    const updatedIds = dto.checked
+      ? Array.from(new Set([...currentIds, itemId]))
+      : currentIds.filter((id) => id !== itemId);
+
+    await this.prisma.scenarioRunTaskProgress.update({
+      where: {
+        scenarioRunTaskId_userId: {
+          scenarioRunTaskId: runTaskId,
+          userId,
+        },
+      },
+
+      data: {
+        checkedChecklistItemIds: updatedIds,
+      },
+    });
+
+    const allChecked =
+      task.checklistItems.length > 0 &&
+      task.checklistItems.every((item) => updatedIds.includes(item.id));
+
+    return {
+      checkedChecklistItemIds: updatedIds,
+
+      allChecked,
+    };
   }
 }
 //Hjælpefunktion som gør brug af Haversine-formlen

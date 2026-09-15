@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AnswerType, TaskStatus } from '../../../generated/prisma/client';
 import { CreateTaskOptionDto } from './create-task-option.dto';
+import { CreateTaskChecklistItemDto } from './create-task-checklist-item.dto';
 
 export class CreateTaskDto {
   @ApiProperty({
@@ -43,4 +44,8 @@ export class CreateTaskDto {
     type: [CreateTaskOptionDto],
   })
   options?: CreateTaskOptionDto[];
+  @ApiPropertyOptional({
+    type: [CreateTaskChecklistItemDto],
+  })
+  checklistItems?: CreateTaskChecklistItemDto[];
 }

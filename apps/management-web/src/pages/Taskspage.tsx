@@ -103,8 +103,9 @@ export default function TasksPage() {
       task.taskType.name === taskType;
 
     const matchesStatus =
-      taskStatus === "" ||
-      task.status === taskStatus;
+      taskStatus === ""
+        ? task.status !== "ARCHIVED"
+        : task.status === taskStatus;
 
     return (
       matchesSearch &&
@@ -131,7 +132,7 @@ export default function TasksPage() {
           onClick={() => setTaskStatus("")}
         >
           Alle opgaver
-          <span>{tasks.length}</span>
+          <span>{tasks.filter((task) => task.status !== "ARCHIVED").length}</span>
         </button>
 
         <button

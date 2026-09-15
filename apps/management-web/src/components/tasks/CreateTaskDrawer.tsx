@@ -1,5 +1,6 @@
 import { useEffect, useState, type SubmitEvent } from "react";
 import { apiFetch } from "../../api/apiFetch";
+import ChecklistEditor, { type ChecklistItemDraft } from "./ChecklistEditor";
 import styles from "./TaskDrawer.module.css";
 
 type TaskStatus = "ACTIVE" | "DRAFT" | "ARCHIVED";
@@ -54,12 +55,19 @@ export default function CreateTaskDrawer({
   const [yesNoCorrect, setYesNoCorrect] = useState<"YES" | "NO">("YES");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [checklistItems, setChecklistItems] = useState<ChecklistItemDraft[]>([
+    {
+      id: crypto.randomUUID(),
+      itemText: "",
+    },
+  ]);
 
   const selectedTaskType = formOptions?.taskTypes.find(
     (type) => type.id === Number(taskTypeId),
   );
 
   const isQuiz = selectedTaskType?.code === "QUIZ";
+  const isChecklist = selectedTaskType?.code === "CHECKLIST";
 
   const [options, setOptions] = useState<TaskOptionDraft[]>([
     {
@@ -170,6 +178,12 @@ export default function CreateTaskDrawer({
         isCorrect: false,
       },
     ]);
+    setChecklistItems([
+      {
+        id: crypto.randomUUID(),
+        itemText: "",
+      },
+    ]);
     setError("");
   }
 
@@ -194,6 +208,23 @@ export default function CreateTaskDrawer({
 
         if (!validOptions.some((option) => option.isCorrect)) {
           setError("Markér mindst ét korrekt svar");
+          return;
+        }
+      }
+      if (isChecklist) {
+        const validChecklistItems =
+          checklistItems.filter(
+            (item) =>
+              item.itemText.trim() !== "",
+          );
+
+        if (
+          validChecklistItems.length === 0
+        ) {
+          setError(
+            "Tilføj mindst ét punkt til tjeklisten",
+          );
+
           return;
         }
       }
@@ -255,7 +286,21 @@ export default function CreateTaskDrawer({
                 : {}),
             }
             : {}),
-
+          ...(isChecklist
+            ? {
+              checklistItems:
+                checklistItems
+                  .filter(
+                    (item) =>
+                      item.itemText.trim() !== "",
+                  )
+                  .map((item, index) => ({
+                    itemText:
+                      item.itemText.trim(),
+                    sortOrder: index,
+                  })),
+            }
+            : {}),
         }),
       });
 
@@ -580,34 +625,45 @@ export default function CreateTaskDrawer({
                     </div>
                   )}
                   {answerType === "YES_NO" && (
-                        <div className={styles.optionsEditor}>
-                          <div className={styles.optionsHeader}>
-                            <strong>Ja/Nej indstilling</strong>
-                            <span>Vælg hvad det korrekte svar er</span>
-                          </div>
-                          <div className={styles.formRow}>
-                            <label>
-                              <input
-                                type="radio"
-                                name="yesNoCorrect"
-                                checked={yesNoCorrect === "YES"}
-                                onChange={() => setYesNoCorrect("YES")}
-                              />
-                              Ja er korrekt
-                            </label>
-                            <label>
-                              <input
-                                type="radio"
-                                name="yesNoCorrect"
-                                checked={yesNoCorrect === "NO"}
-                                onChange={() => setYesNoCorrect("NO")}
-                              />
-                              Nej er korrekt
-                            </label>
-                          </div>
-                          </div>
+                    <div className={styles.optionsEditor}>
+                      <div className={styles.optionsHeader}>
+                        <strong>Ja/Nej indstilling</strong>
+                        <span>Vælg hvad det korrekte svar er</span>
+                      </div>
+                      <div className={styles.formRow}>
+                        <label>
+                          <input
+                            type="radio"
+                            name="yesNoCorrect"
+                            checked={yesNoCorrect === "YES"}
+                            onChange={() => setYesNoCorrect("YES")}
+                          />
+                          Ja er korrekt
+                        </label>
+                        <label>
+                          <input
+                            type="radio"
+                            name="yesNoCorrect"
+                            checked={yesNoCorrect === "NO"}
+                            onChange={() => setYesNoCorrect("NO")}
+                          />
+                          Nej er korrekt
+                        </label>
+                      </div>
+                    </div>
                   )}
                 </section>
+              </>
+            )}
+            {isChecklist && (
+              <>
+                <hr />
+                <ChecklistEditor
+                  items={checklistItems}
+                  onChange={
+                    setChecklistItems
+                  }
+                />
               </>
             )}
             <button

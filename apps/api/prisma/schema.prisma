@@ -92,8 +92,9 @@ model Task {
   environment Environment @relation(fields: [environmentId], references: [id])
   taskType    TaskType    @relation(fields: [taskTypeId], references: [id])
 
-  options       TaskOption[]
-  scenarioTasks ScenarioTask[]
+  options        TaskOption[]
+  checklistItems TaskChecklistItem[]
+  scenarioTasks  ScenarioTask[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -121,6 +122,17 @@ model TaskType {
   tasks Task[]
 
   @@map("task_types")
+}
+
+model TaskChecklistItem {
+  id        String @id @default(uuid()) @db.Uuid
+  taskId    String @map("task_id") @db.Uuid
+  itemText  String @map("item_text")
+  sortOrder Int    @map("sort_order")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_checklist_items")
 }
 
 model Environment {
@@ -233,8 +245,9 @@ model ScenarioRunTask {
 
   scenarioRun ScenarioRun @relation(fields: [scenarioRunId], references: [id], onDelete: Cascade)
 
-  options  ScenarioRunTaskOption[]
-  progress ScenarioRunTaskProgress[]
+  options        ScenarioRunTaskOption[]
+  checklistItems ScenarioRunTaskChecklistItem[]
+  progress       ScenarioRunTaskProgress[]
 
   dependencies ScenarioRunTaskDependency[] @relation("RunTaskDependencies")
   requiredBy   ScenarioRunTaskDependency[] @relation("RunTaskPrerequisites")
@@ -280,10 +293,11 @@ model ScenarioRunTaskProgress {
   startedAt   DateTime? @map("started_at")
   completedAt DateTime? @map("completed_at")
 
-  answerText        String?   @map("answer_text")
-  selectedOptionIds Json?     @map("selected_option_ids")
-  answerCorrect     Boolean?  @map("answer_correct")
-  answeredAt        DateTime? @map("answered_at")
+  answerText              String?   @map("answer_text")
+  selectedOptionIds       Json?     @map("selected_option_ids")
+  answerCorrect           Boolean?  @map("answer_correct")
+  answeredAt              DateTime? @map("answered_at")
+  checkedChecklistItemIds Json?     @map("checked_checklist_item_ids")
 
   scenarioRunTask ScenarioRunTask @relation(fields: [scenarioRunTaskId], references: [id], onDelete: Cascade)
 
@@ -294,4 +308,18 @@ model ScenarioRunTaskProgress {
 
   @@id([scenarioRunTaskId, userId])
   @@map("scenario_run_task_progress")
+}
+
+model ScenarioRunTaskChecklistItem {
+  id                String @id @default(uuid()) @db.Uuid
+  scenarioRunTaskId String @map("scenario_run_task_id") @db.Uuid
+
+  sourceChecklistItemId String @map("source_checklist_item_id") @db.Uuid
+
+  itemText  String @map("item_text")
+  sortOrder Int    @map("sort_order")
+
+  scenarioRunTask ScenarioRunTask @relation(fields: [scenarioRunTaskId], references: [id], onDelete: Cascade)
+
+  @@map("scenario_run_task_checklist_items")
 }

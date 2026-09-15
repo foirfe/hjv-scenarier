@@ -238,6 +238,21 @@
   font-weight: 600;
 }
 
+.checklistRow {
+  display: grid;
+  grid-template-columns: 26px 1fr 32px;
+  gap: 8px;
+  align-items: center;
+}
+
+.checklistRow > input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #c8cbc6;
+  background: #f5f6f3;
+  font: inherit;
+}
+
 @media (max-width: 600px) {
   .formRow {
     grid-template-columns: 1fr;

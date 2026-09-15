@@ -12,7 +12,16 @@ export class TasksService {
       include: {
         taskType: true,
         environment: true,
-        options: true,
+        options: {
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
+        checklistItems: {
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
         _count: {
           select: {
             scenarioTasks: true,
@@ -32,6 +41,11 @@ export class TasksService {
             sortOrder: 'asc',
           },
         },
+        checklistItems: {
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
         _count: {
           select: {
             scenarioTasks: true,
@@ -39,7 +53,6 @@ export class TasksService {
         },
       },
     });
-
     if (!task) {
       throw new NotFoundException('Opgaven blev ikke fundet');
     }
@@ -47,7 +60,7 @@ export class TasksService {
     return task;
   }
   create(dto: CreateTaskDto) {
-    const { options, ...taskData } = dto;
+    const { options, checklistItems, ...taskData } = dto;
 
     return this.prisma.task.create({
       data: {
@@ -60,8 +73,15 @@ export class TasksService {
               },
             }
           : {}),
-      },
 
+        ...(checklistItems?.length
+          ? {
+              checklistItems: {
+                create: checklistItems,
+              },
+            }
+          : {}),
+      },
       include: {
         environment: true,
         taskType: true,
@@ -70,11 +90,16 @@ export class TasksService {
             sortOrder: 'asc',
           },
         },
+        checklistItems: {
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
       },
     });
   }
   update(id: string, dto: UpdateTaskDto) {
-    const { options, ...taskData } = dto;
+    const { options, checklistItems, ...taskData } = dto;
 
     return this.prisma.task.update({
       where: { id },
@@ -90,12 +115,28 @@ export class TasksService {
               },
             }
           : {}),
+
+        ...(checklistItems !== undefined
+          ? {
+              checklistItems: {
+                deleteMany: {},
+                create: checklistItems,
+              },
+            }
+          : {}),
       },
 
       include: {
         environment: true,
         taskType: true,
+
         options: {
+          orderBy: {
+            sortOrder: 'asc',
+          },
+        },
+
+        checklistItems: {
           orderBy: {
             sortOrder: 'asc',
           },

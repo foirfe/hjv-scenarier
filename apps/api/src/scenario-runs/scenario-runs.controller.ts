@@ -29,6 +29,7 @@ import { RemoveScenarioRunUserDto } from './dto/remove-scenario-run-user.dto';
 import { UpdateScenarioRunUserDto } from './dto/update-scenario-run.user.dto';
 import { ActivateScenarioRunTaskDto } from './dto/activate-scenario-run-task.dto';
 import { SubmitTaskAnswerDto } from './dto/submit-task-answer.dto';
+import { UpdateChecklistItemDto } from './dto/update-checklist-item.dto';
 
 @ApiTags('scenario-runs')
 @ApiBearerAuth()
@@ -281,6 +282,36 @@ export class ScenarioRunsController {
       runId,
       runTaskId,
       request.user.sub,
+    );
+  }
+  @Patch(':runId/tasks/:runTaskId/checklist/:itemId')
+  @ApiOperation({
+    summary: 'Opdater punkt på tjekliste',
+    description:
+      'Afkrydser eller fjerner afkrydsning på et checklist-punkt for den indloggede bruger.',
+  })
+  updateChecklistItem(
+    @Param('runId', ParseUUIDPipe)
+    runId: string,
+
+    @Param('runTaskId', ParseUUIDPipe)
+    runTaskId: string,
+
+    @Param('itemId', ParseUUIDPipe)
+    itemId: string,
+
+    @Body()
+    dto: UpdateChecklistItemDto,
+
+    @Req()
+    request: AuthenticatedRequest,
+  ) {
+    return this.scenarioRunsService.updateChecklistItem(
+      runId,
+      runTaskId,
+      itemId,
+      request.user.sub,
+      dto,
     );
   }
 }

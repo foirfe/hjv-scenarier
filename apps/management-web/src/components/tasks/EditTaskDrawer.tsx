@@ -1,4 +1,5 @@
 import { useEffect, useState, type SubmitEvent } from "react";
+import ChecklistEditor, { type ChecklistItemDraft } from "./ChecklistEditor";
 import { apiFetch } from "../../api/apiFetch";
 import styles from "./TaskDrawer.module.css";
 
@@ -33,6 +34,12 @@ type TaskOptionDraft = {
   isCorrect: boolean;
 };
 
+type TaskChecklistItem = {
+  id: string;
+  itemText: string;
+  sortOrder: number;
+};
+
 type FormOptions = {
   environments: Environment[];
   taskTypes: TaskType[];
@@ -50,6 +57,8 @@ type Task = {
   taskType: TaskType;
 
   options: TaskOption[];
+
+  checklistItems: TaskChecklistItem[];
 };
 
 type Props = {
@@ -90,16 +99,18 @@ export default function EditTaskDrawer({
   const [answerType, setAnswerType] = useState<AnswerType>("MULTIPLE_CHOICE");
   const [options, setOptions] = useState<TaskOptionDraft[]>(createEmptyOptions());
   const [yesNoCorrect, setYesNoCorrect] = useState<"YES" | "NO">("YES");
-  
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [checklistItems, setChecklistItems] = useState<ChecklistItemDraft[]>([]);
 
   const selectedTaskType = formOptions?.taskTypes.find(
     (type) => type.id === Number(taskTypeId),
   );
 
   const isQuiz = selectedTaskType?.code === "QUIZ";
+  const isChecklist = selectedTaskType?.code === "CHECKLIST";
 
   useEffect(() => {
     if (!taskId) {
@@ -165,6 +176,28 @@ export default function EditTaskDrawer({
           );
         } else {
           setOptions(createEmptyOptions());
+        }
+        if (
+          task.checklistItems.length > 0
+        ) {
+          setChecklistItems(
+            [...task.checklistItems]
+              .sort(
+                (a, b) =>
+                  a.sortOrder - b.sortOrder,
+              )
+              .map((item) => ({
+                id: item.id,
+                itemText: item.itemText,
+              })),
+          );
+        } else {
+          setChecklistItems([
+            {
+              id: crypto.randomUUID(),
+              itemText: "",
+            },
+          ]);
         }
       } catch {
         if (!cancelled) {
@@ -312,6 +345,24 @@ export default function EditTaskDrawer({
       }
     }
 
+    if (isChecklist) {
+      const validChecklistItems =
+        checklistItems.filter(
+          (item) =>
+            item.itemText.trim() !== "",
+        );
+
+      if (
+        validChecklistItems.length === 0
+      ) {
+        setError(
+          "Tilføj mindst ét punkt til tjeklisten",
+        );
+
+        return;
+      }
+    }
+
     try {
       setSaving(true);
       setError("");
@@ -390,6 +441,28 @@ export default function EditTaskDrawer({
               answerType: null,
               options: [],
             }),
+
+          // Flyttet ind i JSON.stringify objektet her:
+          ...(isChecklist
+            ? {
+              checklistItems:
+                checklistItems
+                  .filter(
+                    (item) =>
+                      item.itemText.trim() !== "",
+                  )
+                  .map(
+                    (item, index) => ({
+                      itemText:
+                        item.itemText.trim(),
+
+                      sortOrder: index,
+                    }),
+                  ),
+            }
+            : {
+              checklistItems: [],
+            }),
         }),
       });
 
@@ -441,7 +514,7 @@ export default function EditTaskDrawer({
                 onClick={onClose}
                 aria-label="Luk"
               >
-                ×
+                x
               </button>
             </div>
           </header>
@@ -851,6 +924,17 @@ export default function EditTaskDrawer({
                         </div>
                       )}
                     </section>
+                  </>
+                )}
+                {isChecklist && (
+                  <>
+                    <hr />
+                    <ChecklistEditor
+                      items={checklistItems}
+                      onChange={
+                        setChecklistItems
+                      }
+                    />
                   </>
                 )}
               </>

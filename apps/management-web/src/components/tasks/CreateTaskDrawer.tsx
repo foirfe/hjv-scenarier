@@ -42,22 +42,16 @@ export default function CreateTaskDrawer({
   onClose,
   onCreated,
 }: Props) {
-  const [formOptions, setFormOptions] =
-    useState<FormOptions | null>(null);
+  const [formOptions, setFormOptions] = useState<FormOptions | null>(null);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
-
   const [environmentId, setEnvironmentId] = useState("");
   const [taskTypeId, setTaskTypeId] = useState("");
-
-  const [status, setStatus] =
-    useState<TaskStatus>("ACTIVE");
-
-  const [answerType, setAnswerType] =
-    useState<AnswerType>("MULTIPLE_CHOICE");
-
+  const [status, setStatus] = useState<TaskStatus>("ACTIVE");
+  const [answerType, setAnswerType] = useState<AnswerType>("MULTIPLE_CHOICE");
+  const [yesNoCorrect, setYesNoCorrect] = useState<"YES" | "NO">("YES");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -163,6 +157,7 @@ export default function CreateTaskDrawer({
     setTaskTypeId("");
     setStatus("ACTIVE");
     setAnswerType("MULTIPLE_CHOICE");
+    setYesNoCorrect("YES");
     setOptions([
       {
         id: crypto.randomUUID(),
@@ -223,7 +218,6 @@ export default function CreateTaskDrawer({
           ...(isQuiz
             ? {
               answerType,
-
               ...(answerType === "MULTIPLE_CHOICE"
                 ? {
                   options: options
@@ -239,6 +233,24 @@ export default function CreateTaskDrawer({
 
                       sortOrder: index,
                     })),
+                }
+                : {}),
+              ...(answerType === "YES_NO"
+                ? {
+                  options: [
+                    {
+                      optionText: "Ja",
+                      isCorrect:
+                        yesNoCorrect === "YES",
+                      sortOrder: 0,
+                    },
+                    {
+                      optionText: "Nej",
+                      isCorrect:
+                        yesNoCorrect === "NO",
+                      sortOrder: 1,
+                    },
+                  ],
                 }
                 : {}),
             }
@@ -566,6 +578,34 @@ export default function CreateTaskDrawer({
                         + Tilføj svarmulighed
                       </button>
                     </div>
+                  )}
+                  {answerType === "YES_NO" && (
+                        <div className={styles.optionsEditor}>
+                          <div className={styles.optionsHeader}>
+                            <strong>Ja/Nej indstilling</strong>
+                            <span>Vælg hvad det korrekte svar er</span>
+                          </div>
+                          <div className={styles.formRow}>
+                            <label>
+                              <input
+                                type="radio"
+                                name="yesNoCorrect"
+                                checked={yesNoCorrect === "YES"}
+                                onChange={() => setYesNoCorrect("YES")}
+                              />
+                              Ja er korrekt
+                            </label>
+                            <label>
+                              <input
+                                type="radio"
+                                name="yesNoCorrect"
+                                checked={yesNoCorrect === "NO"}
+                                onChange={() => setYesNoCorrect("NO")}
+                              />
+                              Nej er korrekt
+                            </label>
+                          </div>
+                          </div>
                   )}
                 </section>
               </>

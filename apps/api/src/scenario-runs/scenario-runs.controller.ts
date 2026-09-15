@@ -28,6 +28,7 @@ import { ScenarioRunsService } from './scenario-runs.service';
 import { RemoveScenarioRunUserDto } from './dto/remove-scenario-run-user.dto';
 import { UpdateScenarioRunUserDto } from './dto/update-scenario-run.user.dto';
 import { ActivateScenarioRunTaskDto } from './dto/activate-scenario-run-task.dto';
+import { SubmitTaskAnswerDto } from './dto/submit-task-answer.dto';
 
 @ApiTags('scenario-runs')
 @ApiBearerAuth()
@@ -200,7 +201,32 @@ export class ScenarioRunsController {
       dto,
     );
   }
+  @Post(':runId/tasks/:runTaskId/answer')
+  @ApiOperation({
+    summary: 'Besvar en opgave',
+    description:
+      'Gemmer og validerer den indloggede brugers svar på en aktiv opgave.',
+  })
+  submitAnswer(
+    @Param('runId', ParseUUIDPipe)
+    runId: string,
 
+    @Param('runTaskId', ParseUUIDPipe)
+    runTaskId: string,
+
+    @Body()
+    dto: SubmitTaskAnswerDto,
+
+    @Req()
+    request: AuthenticatedRequest,
+  ) {
+    return this.scenarioRunsService.submitAnswer(
+      runId,
+      runTaskId,
+      request.user.sub,
+      dto,
+    );
+  }
   @Patch(':runId/tasks/:runTaskId/complete')
   @ApiOperation({
     summary: 'Marker en opgave som udført',

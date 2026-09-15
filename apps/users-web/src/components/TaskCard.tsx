@@ -1,4 +1,5 @@
 import type {ActivationMode, RunTask, TaskProgressStatus} from "../types/scenarioRun";
+import TaskAnswer from "./task-answers/TaskAnswer";
 import styles from "./TaskCard.module.css";
 //HELPER FUNKTIONER
 function getTaskStatusLabel(
@@ -56,15 +57,19 @@ function getStatusClass(
   }
 }
 type TaskCardProps = {
+  runId: string,
   task: RunTask;
   onComplete: (taskId: string) => void;
   completing: boolean;
+  onAnswered: () => void | Promise<void>
 };
 
 export default function TaskCard({
+  runId,
   task,
   onComplete,
-  completing
+  completing,
+  onAnswered,
 }: TaskCardProps) {
   return (
   <article className={styles.card}>
@@ -103,15 +108,29 @@ export default function TaskCard({
         </p>
       )}
 
-    {task.status === "ACTIVE" && (
-      <>
-      <ActiveTaskContent task={task} />
-         <button type="button"
-          onClick={()=> onComplete(task.id)}>
-            {completing ? "Færddiggør" : "Markér som færdig"}
-          </button>
-      </>
+   {task.status === "ACTIVE" && (
+  <>
+    <ActiveTaskContent task={task} />
+
+    {task.answerType ? (
+      <TaskAnswer
+        runId={runId}
+        task={task}
+        onAnswered={onAnswered}
+      />
+    ) : (
+      <button
+        type="button"
+        disabled={completing}
+        onClick={() =>
+          onComplete(task.id)
+        }
+      >
+        {completing ? "Færdiggør..." : "Markér som færdig"}
+      </button>
     )}
+  </>
+)}
 
     {task.status === "COMPLETED" && (
       <>

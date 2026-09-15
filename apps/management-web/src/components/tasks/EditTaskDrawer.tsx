@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type SubmitEvent } from "react";
 import { apiFetch } from "../../api/apiFetch";
 import styles from "./TaskDrawer.module.css";
 
@@ -84,13 +84,13 @@ export default function EditTaskDrawer({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
-
   const [environmentId, setEnvironmentId] = useState("");
   const [taskTypeId, setTaskTypeId] = useState("");
   const [status, setStatus] = useState<TaskStatus>("ACTIVE");
   const [answerType, setAnswerType] = useState<AnswerType>("MULTIPLE_CHOICE");
   const [options, setOptions] = useState<TaskOptionDraft[]>(createEmptyOptions());
-
+  const [yesNoCorrect, setYesNoCorrect] = useState<"YES" | "NO">("YES");
+  
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -138,11 +138,19 @@ export default function EditTaskDrawer({
 
         setStatus(task.status);
 
-        setAnswerType(
-          task.answerType ?? "MULTIPLE_CHOICE",
-        );
+        const currentAnswerType = task.answerType ?? "MULTIPLE_CHOICE";
+        setAnswerType(currentAnswerType);
 
-        if (task.options.length > 0) {
+        if (currentAnswerType === "YES_NO" && task.options) {
+          const correctOption = task.options.find((opt) => opt.isCorrect);
+          if (correctOption?.optionText === "Nej") {
+            setYesNoCorrect("NO");
+          } else {
+            setYesNoCorrect("YES");
+          }
+        }
+
+        if (task.options.length > 0 && currentAnswerType === "MULTIPLE_CHOICE") {
           setOptions(
             task.options
               .sort(
@@ -175,7 +183,6 @@ export default function EditTaskDrawer({
       cancelled = true;
     };
   }, [taskId]);
-
 
   useEffect(() => {
     if (!taskId) {
@@ -220,9 +227,9 @@ export default function EditTaskDrawer({
       current.map((option) =>
         option.id === id
           ? {
-              ...option,
-              optionText,
-            }
+            ...option,
+            optionText,
+          }
           : option,
       ),
     );
@@ -233,9 +240,9 @@ export default function EditTaskDrawer({
       current.map((option) =>
         option.id === id
           ? {
-              ...option,
-              isCorrect: !option.isCorrect,
-            }
+            ...option,
+            isCorrect: !option.isCorrect,
+          }
           : option,
       ),
     );
@@ -253,7 +260,7 @@ export default function EditTaskDrawer({
     });
   }
 
-  async function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
 
     if (!taskId) {
@@ -329,37 +336,60 @@ export default function EditTaskDrawer({
           status,
           ...(isQuiz
             ? {
-                answerType,
+              answerType,
 
-                options:
-                  answerType ===
-                  "MULTIPLE_CHOICE"
-                    ? options
-                        .filter(
-                          (option) =>
-                            option.optionText.trim() !== "",
-                        )
-                        .map(
-                          (
-                            option,
-                            index,
-                          ) => ({
-                            optionText:
-                              option.optionText.trim(),
+              ...(answerType === "MULTIPLE_CHOICE"
+                ? {
+                  options: options
+                    .filter(
+                      (option) =>
+                        option.optionText.trim() !== "",
+                    )
+                    .map(
+                      (
+                        option,
+                        index,
+                      ) => ({
+                        optionText:
+                          option.optionText.trim(),
 
-                            isCorrect:
-                              option.isCorrect,
+                        isCorrect:
+                          option.isCorrect,
 
-                            sortOrder:
-                              index,
-                          }),
-                        )
-                    : [],
-              }
+                        sortOrder:
+                          index,
+                      }),
+                    ),
+                }
+                : {}),
+
+              ...(answerType === "YES_NO"
+                ? {
+                  options: [
+                    {
+                      optionText: "Ja",
+                      isCorrect: yesNoCorrect === "YES",
+                      sortOrder: 0,
+                    },
+                    {
+                      optionText: "Nej",
+                      isCorrect: yesNoCorrect === "NO",
+                      sortOrder: 1,
+                    },
+                  ],
+                }
+                : {}),
+
+              ...(answerType === "FREE_TEXT"
+                ? {
+                  options: [],
+                }
+                : {}),
+            }
             : {
-                answerType: null,
-                options: [],
-              }),
+              answerType: null,
+              options: [],
+            }),
         }),
       });
 
@@ -691,111 +721,133 @@ export default function EditTaskDrawer({
 
                       {answerType ===
                         "MULTIPLE_CHOICE" && (
-                        <div
-                          className={
-                            styles.optionsEditor
-                          }
-                        >
                           <div
-                            className={
-                              styles.optionsHeader
-                            }
+                            className={styles.optionsEditor}
                           >
-                            <strong>
-                              Svarmuligheder
-                            </strong>
+                            <div
+                              className={styles.optionsHeader}
+                            >
+                              <strong>
+                                Svarmuligheder
+                              </strong>
 
-                            <span>
-                              Markér korrekte svar
-                            </span>
-                          </div>
+                              <span>
+                                Markér korrekte svar
+                              </span>
+                            </div>
 
-                          {options.map(
-                            (option, index) => (
-                              <div
-                                key={option.id}
-                                className={
-                                  styles.optionRow
-                                }
-                              >
-                                <span
-                                  className={
-                                    styles.optionNumber
-                                  }
+                            {options.map(
+                              (option, index) => (
+                                <div
+                                  key={option.id}
+                                  className={styles.optionRow}
                                 >
-                                  {index + 1}
-                                </span>
-
-                                <input
-                                  type="text"
-                                  value={
-                                    option.optionText
-                                  }
-                                  placeholder={`Svarmulighed ${
-                                    index + 1
-                                  }`}
-                                  onChange={(
-                                    event,
-                                  ) =>
-                                    updateOptionText(
-                                      option.id,
-                                      event.target
-                                        .value,
-                                    )
-                                  }
-                                />
-
-                                <label
-                                  className={
-                                    styles.correctOption
-                                  }
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={
-                                      option.isCorrect
+                                  <span
+                                    className={
+                                      styles.optionNumber
                                     }
-                                    onChange={() =>
-                                      toggleOptionCorrect(
+                                  >
+                                    {index + 1}
+                                  </span>
+
+                                  <input
+                                    type="text"
+                                    value={
+                                      option.optionText
+                                    }
+                                    placeholder={`Svarmulighed ${index + 1
+                                      }`}
+                                    onChange={(
+                                      event,
+                                    ) =>
+                                      updateOptionText(
                                         option.id,
+                                        event.target
+                                          .value,
                                       )
                                     }
                                   />
 
-                                  Korrekt
-                                </label>
+                                  <label
+                                    className={
+                                      styles.correctOption
+                                    }
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={
+                                        option.isCorrect
+                                      }
+                                      onChange={() =>
+                                        toggleOptionCorrect(
+                                          option.id,
+                                        )
+                                      }
+                                    />
 
-                                <button
-                                  type="button"
-                                  className={
-                                    styles.removeOption
-                                  }
-                                  disabled={
-                                    options.length <=
-                                    2
-                                  }
-                                  onClick={() =>
-                                    removeOption(
-                                      option.id,
-                                    )
-                                  }
-                                  aria-label="Fjern svarmulighed"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ),
-                          )}
+                                    Korrekt
+                                  </label>
 
-                          <button
-                            type="button"
-                            className={
-                              styles.addOption
-                            }
-                            onClick={addOption}
-                          >
-                            + Tilføj svarmulighed
-                          </button>
+                                  <button
+                                    type="button"
+                                    className={
+                                      styles.removeOption
+                                    }
+                                    disabled={
+                                      options.length <=
+                                      2
+                                    }
+                                    onClick={() =>
+                                      removeOption(
+                                        option.id,
+                                      )
+                                    }
+                                    aria-label="Fjern svarmulighed"
+                                  >
+                                    x
+                                  </button>
+                                </div>
+                              ),
+                            )}
+
+                            <button
+                              type="button"
+                              className={
+                                styles.addOption
+                              }
+                              onClick={addOption}
+                            >
+                              + Tilføj svarmulighed
+                            </button>
+                          </div>
+                        )}
+
+                      {answerType === "YES_NO" && (
+                        <div className={styles.optionsEditor}>
+                          <div className={styles.optionsHeader}>
+                            <strong>Ja/Nej indstilling</strong>
+                            <span>Vælg hvad det korrekte svar er</span>
+                          </div>
+                          <div className={styles.formRow}>
+                            <label>
+                              <input
+                                type="radio"
+                                name="yesNoCorrect"
+                                checked={yesNoCorrect === "YES"}
+                                onChange={() => setYesNoCorrect("YES")}
+                              />
+                              Ja er korrekt
+                            </label>
+                            <label>
+                              <input
+                                type="radio"
+                                name="yesNoCorrect"
+                                checked={yesNoCorrect === "NO"}
+                                onChange={() => setYesNoCorrect("NO")}
+                              />
+                              Nej er korrekt
+                            </label>
+                          </div>
                         </div>
                       )}
                     </section>

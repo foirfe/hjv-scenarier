@@ -18,6 +18,7 @@ import { AddScenarioRunUserDto } from './dto/add-scenario-run-user.dto';
 import { RemoveScenarioRunUserDto } from './dto/remove-scenario-run-user.dto';
 import { UpdateScenarioRunUserDto } from './dto/update-scenario-run.user.dto';
 import { ActivateScenarioRunTaskDto } from './dto/activate-scenario-run-task.dto';
+import { SubmitTaskAnswerDto } from './dto/submit-task-answer.dto';
 
 @Injectable()
 export class ScenarioRunsService {
@@ -934,6 +935,144 @@ export class ScenarioRunsService {
       }),
     };
   }
+  //FUNKTION TIL SUBMIT AF SVAR
+  async submitAnswer(
+    runId: string,
+    runTaskId: string,
+    userId: string,
+    dto: SubmitTaskAnswerDto,
+  ) {
+    const progress = await this.prisma.scenarioRunTaskProgress.findUnique({
+      where: {
+        scenarioRunTaskId_userId: {
+          scenarioRunTaskId: runTaskId,
+          userId,
+        },
+      },
+
+      include: {
+        scenarioRunTask: {
+          include: {
+            options: true,
+            scenarioRun: true,
+          },
+        },
+      },
+    });
+
+    if (!progress) {
+      throw new NotFoundException('Opgaven blev ikke fundet for denne bruger');
+    }
+
+    const task = progress.scenarioRunTask;
+
+    if (task.scenarioRunId !== runId) {
+      throw new BadRequestException(
+        'Opgaven tilhører ikke denne scenarieafvikling',
+      );
+    }
+
+    if (task.scenarioRun.status !== 'IN_PROGRESS') {
+      throw new BadRequestException('Scenarieafviklingen er ikke i gang');
+    }
+
+    if (progress.status !== TaskProgressStatus.ACTIVE) {
+      throw new BadRequestException('Kun en aktiv opgave kan besvares');
+    }
+
+    if (!task.answerType) {
+      throw new BadRequestException('Denne opgave kræver ikke et svar');
+    }
+
+    const answeredAt = new Date();
+
+    if (task.answerType === 'MULTIPLE_CHOICE' || task.answerType === 'YES_NO') {
+      const selectedOptionIds = dto.selectedOptionIds ?? [];
+
+      if (selectedOptionIds.length === 0) {
+        throw new BadRequestException('Vælg mindst ét svar');
+      }
+
+      const validOptionIds = new Set(task.options.map((option) => option.id));
+
+      const containsInvalidOption = selectedOptionIds.some(
+        (id) => !validOptionIds.has(id),
+      );
+
+      if (containsInvalidOption) {
+        throw new BadRequestException(
+          'Et eller flere svar tilhører ikke opgaven',
+        );
+      }
+
+      const correctOptionIds = task.options
+        .filter((option) => option.isCorrect)
+        .map((option) => option.id);
+      const isCorrect = sameIds(selectedOptionIds, correctOptionIds);
+      await this.prisma.scenarioRunTaskProgress.update({
+        where: {
+          scenarioRunTaskId_userId: {
+            scenarioRunTaskId: runTaskId,
+            userId,
+          },
+        },
+
+        data: {
+          selectedOptionIds,
+          answerText: null,
+          answerCorrect: isCorrect,
+          answeredAt,
+        },
+      });
+
+      if (!isCorrect) {
+        return {
+          correct: false,
+          completed: false,
+        };
+      }
+
+      await this.completeTask(runId, runTaskId, userId);
+
+      return {
+        correct: true,
+        completed: true,
+      };
+    }
+
+    const answerText = dto.textAnswer?.trim();
+
+    if (!answerText) {
+      throw new BadRequestException('Indtast et svar');
+    }
+
+    if (!answerText) {
+      throw new BadRequestException('Indtast et svar');
+    }
+
+    await this.prisma.scenarioRunTaskProgress.update({
+      where: {
+        scenarioRunTaskId_userId: {
+          scenarioRunTaskId: runTaskId,
+          userId,
+        },
+      },
+
+      data: {
+        answerText,
+        selectedOptionIds: undefined,
+        answerCorrect: null,
+        answeredAt,
+      },
+    });
+
+    await this.completeTask(runId, runTaskId, userId);
+
+    return {
+      correct: null,
+      completed: true,
+    };
+  }
   //HJÆLPER FUNKTION SOM SIKKER AT MAN IKKE KAN MANIPULERE BRUGERE PÅ EN STARTED/INPROGRESS ELLER AFSLUTTET SCENARIE
   private async ensureRunIsEditable(runId: string) {
     const scenarioRun = await this.prisma.scenarioRun.findUnique({
@@ -955,7 +1094,6 @@ export class ScenarioRunsService {
     }
   }
 }
-
 //Hjælpefunktion som gør brug af Haversine-formlen
 function getDistanceMeters(
   latitude1: number,
@@ -964,21 +1102,22 @@ function getDistanceMeters(
   longitude2: number,
 ) {
   const earthRadiusMeters = 6_371_000;
-
   const toRadians = (degrees: number) => degrees * (Math.PI / 180);
-
   const lat1 = toRadians(latitude1);
   const lat2 = toRadians(latitude2);
-
   const deltaLatitude = toRadians(latitude2 - latitude1);
-
   const deltaLongitude = toRadians(longitude2 - longitude1);
-
   const a =
     Math.sin(deltaLatitude / 2) ** 2 +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLongitude / 2) ** 2;
-
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
   return earthRadiusMeters * c;
+}
+//HJÆLPERFUNKTION TIL AT FINDE "RIGTIGE SVAR"
+function sameIds(first: string[], second: string[]) {
+  if (first.length !== second.length) {
+    return false;
+  }
+  const firstSet = new Set(first);
+  return second.every((id) => firstSet.has(id));
 }

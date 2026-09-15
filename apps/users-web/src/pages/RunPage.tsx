@@ -222,10 +222,13 @@ export default function RunPage() {
     ) : (
       <div className={styles.taskList}>
         {run.tasks.map((task) => (
-          <TaskCard key={task.id}
+          <TaskCard 
+           key={task.id}
+           runId={run.id}
            task={task}
            onComplete={completeTask}
            completing={completingTaskId === task.id}
+           onAnswered={refreshRun}
            />
           ))}
       </div>
@@ -241,10 +244,13 @@ export default function RunPage() {
           </h2>
             <div className={styles.taskList}>
           {run.tasks.map((task) => (
-              <TaskCard key={task.id}
+              <TaskCard 
+               key={task.id}
+               runId={run.id}
                task={task}
                onComplete={completeTask}
                completing={completingTaskId === task.id}
+               onAnswered={refreshRun}
                 />
             ))}
             </div>

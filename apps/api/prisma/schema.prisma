@@ -280,6 +280,11 @@ model ScenarioRunTaskProgress {
   startedAt   DateTime? @map("started_at")
   completedAt DateTime? @map("completed_at")
 
+  answerText        String?   @map("answer_text")
+  selectedOptionIds Json?     @map("selected_option_ids")
+  answerCorrect     Boolean?  @map("answer_correct")
+  answeredAt        DateTime? @map("answered_at")
+
   scenarioRunTask ScenarioRunTask @relation(fields: [scenarioRunTaskId], references: [id], onDelete: Cascade)
 
   user User @relation(fields: [userId], references: [id])

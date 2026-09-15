@@ -20,8 +20,10 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
+    const normalizedUsername = username.trim().toLowerCase()
+
     try {
-      await login(username, password);
+      await login(normalizedUsername, password);
       navigate("/overview");
     } catch (error) {
       setError(

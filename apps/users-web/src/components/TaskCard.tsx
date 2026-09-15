@@ -57,10 +57,14 @@ function getStatusClass(
 }
 type TaskCardProps = {
   task: RunTask;
+  onComplete: (taskId: string) => void;
+  completing: boolean;
 };
 
 export default function TaskCard({
   task,
+  onComplete,
+  completing
 }: TaskCardProps) {
   return (
   <article className={styles.card}>
@@ -100,7 +104,13 @@ export default function TaskCard({
       )}
 
     {task.status === "ACTIVE" && (
+      <>
       <ActiveTaskContent task={task} />
+         <button type="button"
+          onClick={()=> onComplete(task.id)}>
+            {completing ? "Færddiggør" : "Markér som færdig"}
+          </button>
+      </>
     )}
 
     {task.status === "COMPLETED" && (

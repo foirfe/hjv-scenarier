@@ -24,9 +24,10 @@ export default function LoginPage() {
 
     setError("");
     setLoading(true);
+     const normalizedUsername = username.trim().toLowerCase()
 
     try {
-      await login(username, password);
+      await login(normalizedUsername, password);
 
       navigate("/runs", {
         replace: true,
@@ -50,7 +51,7 @@ export default function LoginPage() {
           HJEMMEVÆRNSSKOLEN
         </div>
 
-        <h1>HJV Øvelsessystem</h1>
+        <h1>HVS Øvelsessystem</h1>
 
         <p>
           Log ind for at se dine øvelser.

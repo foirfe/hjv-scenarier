@@ -7,6 +7,7 @@ import {useGeolocation} from "../hooks/useGeolocation";
 import GeoGuide from "../components/GeoGuide";
 import {useDeviceHeading} from "../hooks/useDeviceHeading";
 import {useGeoTaskActivation,} from "../hooks/useGeoTaskActivation";
+import { useTaskCompletion } from "../hooks/useTaskCompletion";
 import type {RunDetail, ScenarioRole,ScenarioRunStatus} from "../types/scenarioRun";
 import styles from "./RunPage.module.css";
 
@@ -91,6 +92,7 @@ export default function RunPage() {
 
     setRun(data);
   }, [runId]);
+  const {completeTask, completingTaskId, completionError} = useTaskCompletion({runId: runId ?? "", onCompleted: refreshRun});
 
   const needsGps = run?.status === "IN_PROGRESS" && run.role !== "INSTRUCTOR" && run.tasks.some(
     (task) =>
@@ -220,7 +222,11 @@ export default function RunPage() {
     ) : (
       <div className={styles.taskList}>
         {run.tasks.map((task) => (
-          <TaskCard key={task.id} task={task}/>
+          <TaskCard key={task.id}
+           task={task}
+           onComplete={completeTask}
+           completing={completingTaskId === task.id}
+           />
           ))}
       </div>
     )}
@@ -235,7 +241,11 @@ export default function RunPage() {
           </h2>
             <div className={styles.taskList}>
           {run.tasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard key={task.id}
+               task={task}
+               onComplete={completeTask}
+               completing={completingTaskId === task.id}
+                />
             ))}
             </div>
         </section>
@@ -247,6 +257,9 @@ export default function RunPage() {
             Øvelsen blev afbrudt
           </h2>
         </section>
+      )}
+      {completionError &&(
+        <p role="alert">{completionError}</p>
       )}
     </main>
   );

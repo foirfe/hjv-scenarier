@@ -1,0 +1,66 @@
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+
+  margin-top: var(--spacing-md);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--spacing-sm);
+
+  padding: var(--spacing-md);
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-large);
+
+  background: var(--color-background);
+
+  cursor: pointer;
+}
+
+.item input {
+  width: 20px;
+  height: 20px;
+}
+
+.item small {
+  color: var(--color-muted);
+}
+
+.checklist button {
+  align-self: flex-start;
+
+  padding: 10px 16px;
+
+  border: 0;
+  border-radius: var(--radius-large);
+
+  background: var(--color-primary);
+  color: white;
+
+  font: inherit;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.checklist button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

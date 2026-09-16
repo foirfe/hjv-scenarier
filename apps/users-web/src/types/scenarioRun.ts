@@ -31,6 +31,12 @@ export type RunTaskOption = {
   sortOrder: number;
 };
 
+export type RunTaskChecklistItem = {
+  id: string;
+  itemText: string;
+  sortOrder: number;
+};
+
 export type RunTask = {
   id: string;
   name: string;
@@ -53,6 +59,9 @@ export type RunTask = {
   startedAt: string | null;
   completedAt: string | null;
   options: RunTaskOption[];
+
+  checklistItems: RunTaskChecklistItem[];
+  checkedChecklistItemIds: string[];
 
   dependencies: {
     prerequisiteRunTaskId: string;

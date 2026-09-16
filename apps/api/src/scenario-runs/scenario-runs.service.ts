@@ -574,6 +574,7 @@ export class ScenarioRunsService {
           scenarioRunTask: {
             select: {
               activationMode: true,
+              manualActivatedAt: true,
             },
           },
         },
@@ -607,9 +608,13 @@ export class ScenarioRunsService {
         if (completedPrerequisites !== prerequisites.length) {
           continue;
         }
-        const activationMode = dependent.scenarioRunTask.activationMode;
+        const { activationMode, manualActivatedAt } = dependent.scenarioRunTask;
 
-        if (activationMode === ActivationMode.AUTOMATIC) {
+        if (
+          activationMode === ActivationMode.AUTOMATIC ||
+          (activationMode === ActivationMode.MANUAL &&
+            manualActivatedAt !== null)
+        ) {
           await tx.scenarioRunTaskProgress.updateMany({
             where: {
               scenarioRunTaskId: dependent.scenarioRunTaskId,
@@ -797,6 +802,15 @@ export class ScenarioRunsService {
     }
     const startedAt = new Date();
 
+    await this.prisma.scenarioRunTask.update({
+      where: {
+        id: runTaskId,
+      },
+      data: {
+        manualActivatedAt: startedAt,
+      },
+    });
+
     const result = await this.prisma.scenarioRunTaskProgress.updateMany({
       where: {
         scenarioRunTaskId: runTaskId,
@@ -881,6 +895,7 @@ export class ScenarioRunsService {
                 name: true,
                 description: true,
                 instructions: true,
+                instructorInstructions: true,
                 answerType: true,
                 taskTypeCode: true,
                 activationMode: true,
@@ -917,16 +932,21 @@ export class ScenarioRunsService {
                 },
 
                 progress: {
-                  where: {
-                    userId,
-                  },
-
                   select: {
+                    userId: true,
                     status: true,
                     availableAt: true,
                     startedAt: true,
                     completedAt: true,
                     checkedChecklistItemIds: true,
+
+                    user: {
+                      select: {
+                        id: true,
+                        displayName: true,
+                        username: true,
+                      },
+                    },
                   },
                 },
               },
@@ -943,6 +963,49 @@ export class ScenarioRunsService {
     }
     const run = runUser.scenarioRun;
 
+    if (runUser.role === ScenarioRole.INSTRUCTOR) {
+      return {
+        id: run.id,
+        status: run.status,
+        startedAt: run.startedAt,
+        completedAt: run.completedAt,
+        role: runUser.role,
+        scenario: run.scenario,
+
+        tasks: run.tasks.map((task) => ({
+          id: task.id,
+
+          name: task.name,
+          description: task.description,
+
+          instructions: task.instructions,
+
+          instructorInstructions: task.instructorInstructions,
+
+          answerType: task.answerType,
+          taskTypeCode: task.taskTypeCode,
+
+          activationMode: task.activationMode,
+
+          participants: task.progress.map((progress) => ({
+            userId: progress.userId,
+
+            displayName: progress.user.displayName,
+
+            username: progress.user.username,
+
+            status: progress.status,
+
+            availableAt: progress.availableAt,
+
+            startedAt: progress.startedAt,
+
+            completedAt: progress.completedAt,
+          })),
+        })),
+      };
+    }
+
     return {
       id: run.id,
       status: run.status,
@@ -951,7 +1014,8 @@ export class ScenarioRunsService {
       role: runUser.role,
       scenario: run.scenario,
       tasks: run.tasks.map((task) => {
-        const progress = task.progress[0] ?? null;
+        const progress =
+          task.progress.find((item) => item.userId === userId) ?? null;
         const status = progress?.status ?? null;
         const isUnlocked =
           status !== TaskProgressStatus.LOCKED && status !== null;

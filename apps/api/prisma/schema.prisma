@@ -254,7 +254,8 @@ model ScenarioRunTask {
   dependencies ScenarioRunTaskDependency[] @relation("RunTaskDependencies")
   requiredBy   ScenarioRunTaskDependency[] @relation("RunTaskPrerequisites")
 
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  manualActivatedAt DateTime? @map("manual_activated_at")
 
   @@unique([scenarioRunId, sourceScenarioTaskId])
   @@map("scenario_run_tasks")

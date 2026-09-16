@@ -48,6 +48,7 @@ export default function CreateTaskDrawer({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [instructorInstructions, setInstructorInstructions] = useState("");
   const [environmentId, setEnvironmentId] = useState("");
   const [taskTypeId, setTaskTypeId] = useState("");
   const [status, setStatus] = useState<TaskStatus>("ACTIVE");
@@ -161,6 +162,7 @@ export default function CreateTaskDrawer({
     setName("");
     setDescription("");
     setInstructions("");
+    setInstructorInstructions("");
     setEnvironmentId("");
     setTaskTypeId("");
     setStatus("ACTIVE");
@@ -241,6 +243,8 @@ export default function CreateTaskDrawer({
             description.trim() || undefined,
 
           instructions: instructions.trim(),
+          instructorInstructions:
+            instructorInstructions.trim() || undefined,
 
           environmentId: Number(environmentId),
           taskTypeId: Number(taskTypeId),
@@ -505,6 +509,22 @@ export default function CreateTaskDrawer({
               <small className={styles.characterCount}>
                 {instructions.length} tegn
               </small>
+            </label>
+            <label className={styles.formField}>
+              <span>Instruktion til instruktør</span>
+
+              <small>
+                Valgfri vejledning som kun vises
+                til instruktøren under afviklingen.
+              </small>
+
+              <textarea
+                value={instructorInstructions}
+                onChange={(event) => setInstructorInstructions(event.target.value)
+                }
+                rows={5}
+                placeholder="F.eks. giv deltageren ny information efter 30 sekunder..."
+              />
             </label>
 
             {isQuiz && (

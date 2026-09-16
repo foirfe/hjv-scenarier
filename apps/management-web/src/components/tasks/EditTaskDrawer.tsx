@@ -50,6 +50,7 @@ type Task = {
   name: string;
   description: string | null;
   instructions: string;
+  instructorInstructions: string | null;
   status: TaskStatus;
   answerType: AnswerType | null;
 
@@ -93,6 +94,7 @@ export default function EditTaskDrawer({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [instructorInstructions, setInstructorInstructions] = useState("");
   const [environmentId, setEnvironmentId] = useState("");
   const [taskTypeId, setTaskTypeId] = useState("");
   const [status, setStatus] = useState<TaskStatus>("ACTIVE");
@@ -138,6 +140,7 @@ export default function EditTaskDrawer({
         setName(task.name);
         setDescription(task.description ?? "");
         setInstructions(task.instructions);
+        setInstructorInstructions(task.instructorInstructions ?? "");
 
         setEnvironmentId(
           String(task.environment.id),
@@ -377,6 +380,7 @@ export default function EditTaskDrawer({
             description.trim() || null,
 
           instructions: instructions.trim(),
+          instructorInstructions: instructorInstructions.trim() || null,
 
           environmentId:
             Number(environmentId),
@@ -442,7 +446,6 @@ export default function EditTaskDrawer({
               options: [],
             }),
 
-          // Flyttet ind i JSON.stringify objektet her:
           ...(isChecklist
             ? {
               checklistItems:
@@ -711,24 +714,33 @@ export default function EditTaskDrawer({
                     required
                   />
 
-                  <small
-                    className={
-                      styles.characterCount
-                    }
-                  >
+                  <small className={styles.characterCount}>
                     {instructions.length} tegn
                   </small>
+                </label>
+
+                <label className={styles.formField}>
+                  <span>Instruktion til instruktør</span>
+
+                  <small>
+                    Valgfri vejledning som kun vises
+                    til instruktøren under afviklingen.
+                  </small>
+
+                  <textarea
+                    value={instructorInstructions}
+                    onChange={(event) => setInstructorInstructions(event.target.value)
+                    }
+                    rows={5}
+                    placeholder="F.eks. giv deltageren ny information efter 30 sekunder..."
+                  />
                 </label>
 
                 {isQuiz && (
                   <>
                     <hr />
 
-                    <section
-                      className={
-                        styles.answerSection
-                      }
-                    >
+                    <section className={styles.answerSection}>
                       <h3>
                         Svar og bedømmelse
                       </h3>
@@ -738,11 +750,7 @@ export default function EditTaskDrawer({
                         besvare opgaven.
                       </small>
 
-                      <div
-                        className={
-                          styles.answerTypes
-                        }
-                      >
+                      <div className={styles.answerTypes}>
                         <label>
                           <input
                             type="radio"

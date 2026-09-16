@@ -48,4 +48,8 @@ export class CreateTaskDto {
     type: [CreateTaskChecklistItemDto],
   })
   checklistItems?: CreateTaskChecklistItemDto[];
+  @ApiPropertyOptional({
+    example: 'Efter 30 sekunder meddeles det, at røgen tiltager.',
+  })
+  instructorInstructions?: string;
 }

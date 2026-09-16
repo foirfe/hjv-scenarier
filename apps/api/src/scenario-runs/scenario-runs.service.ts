@@ -346,6 +346,7 @@ export class ScenarioRunsService {
             name: scenarioTask.task.name,
             description: scenarioTask.task.description,
             instructions: scenarioTask.task.instructions,
+            instructorInstructions: scenarioTask.task.instructorInstructions,
             answerType: scenarioTask.task.answerType,
             taskTypeCode: scenarioTask.task.taskType.code,
 

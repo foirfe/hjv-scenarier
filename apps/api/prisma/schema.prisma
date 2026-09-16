@@ -79,12 +79,13 @@ model User {
 }
 
 model Task {
-  id           String      @id @default(uuid()) @db.Uuid
-  name         String
-  description  String?
-  instructions String
-  status       TaskStatus
-  answerType   AnswerType? @map("answer_type")
+  id                     String      @id @default(uuid()) @db.Uuid
+  name                   String
+  description            String?
+  instructions           String
+  instructorInstructions String?     @map("instructor_instructions")
+  status                 TaskStatus
+  answerType             AnswerType? @map("answer_type")
 
   environmentId Int @map("environment_id")
   taskTypeId    Int @map("task_type_id")
@@ -231,11 +232,12 @@ model ScenarioRunTask {
   sourceScenarioTaskId String @map("source_scenario_task_id") @db.Uuid
   sourceTaskId         String @map("source_task_id") @db.Uuid
 
-  name         String
-  description  String?
-  instructions String
-  answerType   AnswerType? @map("answer_type")
-  taskTypeCode String      @map("task_type_code")
+  name                   String
+  description            String?
+  instructions           String
+  instructorInstructions String?     @map("instructor_instructions")
+  answerType             AnswerType? @map("answer_type")
+  taskTypeCode           String      @map("task_type_code")
 
   activationMode ActivationMode @default(GEO) @map("activation_mode")
 

@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from "react";
 
 import { apiFetch } from "../api/apiFetch";
 
-import type {RunDetail,RunTask} from "../types/scenarioRun";
+import type {ParticipantRunDetail, RunTask} from "../types/scenarioRun";
 
 import type { UserPosition } from "./useGeolocation";
 
@@ -10,7 +10,7 @@ import {getDistanceMeters} from "../utils/getDistanceMeters";
 
 type UseGeoTaskActivationOptions = {
   runId: string;
-  run: RunDetail | null;
+  run: ParticipantRunDetail | null;
   position: UserPosition | null;
   onActivated: () => void | Promise<void>;
 };

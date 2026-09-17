@@ -1,14 +1,16 @@
-import {useEffect, useState, useCallback} from "react";
-import {useNavigate, useParams} from "react-router";
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate, useParams } from "react-router";
 import { apiFetch } from "../api/apiFetch";
 import TaskCard from "../components/TaskCard";
 import GpsStatus from "../components/GpsStatus";
-import {useGeolocation} from "../hooks/useGeolocation";
+import { useGeolocation } from "../hooks/useGeolocation";
+import { useManualTaskActivation } from "../hooks/useManualTaskActivation";
+import InstructorRunView from "../components/instructor/InstructorRunView";
 import GeoGuide from "../components/GeoGuide";
-import {useDeviceHeading} from "../hooks/useDeviceHeading";
-import {useGeoTaskActivation,} from "../hooks/useGeoTaskActivation";
+import { useDeviceHeading } from "../hooks/useDeviceHeading";
+import { useGeoTaskActivation, } from "../hooks/useGeoTaskActivation";
 import { useTaskCompletion } from "../hooks/useTaskCompletion";
-import type {RunDetail, ScenarioRole,ScenarioRunStatus} from "../types/scenarioRun";
+import type { RunDetail, ScenarioRole, ScenarioRunStatus } from "../types/scenarioRun";
 import styles from "./RunPage.module.css";
 
 //HELPER FUNKTIONER
@@ -51,70 +53,87 @@ export default function RunPage() {
 
 
   useEffect(() => {
-  let cancelled = false;
-  apiFetch<RunDetail>(
-    `/scenario-runs/${runId}/me`,
-  )
-    .then((data) => {
-      if (!cancelled) {
-        setRun(data);
-      }
-    })
-    .catch((error) => {
-      if (!cancelled) {
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Kunne ikke hente øvelsen",
-        );
-      }
-    })
-    .finally(() => {
-      if (!cancelled) {
-        setLoading(false);
-      }
-    });
+    let cancelled = false;
+    apiFetch<RunDetail>(
+      `/scenario-runs/${runId}/me`,
+    )
+      .then((data) => {
+        if (!cancelled) {
+          setRun(data);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setError(
+            error instanceof Error
+              ? error.message
+              : "Kunne ikke hente øvelsen",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
 
-  return () => {
-    cancelled = true;
-  };
-}, [runId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [runId]);
 
   const refreshRun =
-  useCallback(async () => {
-    if (!runId) {
-      return;
-    }
-    const data =
-      await apiFetch<RunDetail>(
-        `/scenario-runs/${runId}/me`,
-      );
+    useCallback(async () => {
+      if (!runId) {
+        return;
+      }
+      const data =
+        await apiFetch<RunDetail>(
+          `/scenario-runs/${runId}/me`,
+        );
 
-    setRun(data);
-  }, [runId]);
-  const {completeTask, completingTaskId, completionError} = useTaskCompletion({runId: runId ?? "", onCompleted: refreshRun});
+      setRun(data);
+    }, [runId]);
+  //DEFINER OM DET ER DELTAGER ELLER INSTRUKTØR RUN
+  const participantRun =run && run.role !== "INSTRUCTOR" ? run: null;
+  const instructorRun = run?.role === "INSTRUCTOR" ? run : null;
+  const { completeTask, completingTaskId, completionError } = useTaskCompletion({ runId: runId ?? "", onCompleted: refreshRun });
 
-  const needsGps = run?.status === "IN_PROGRESS" && run.role !== "INSTRUCTOR" && run.tasks.some(
-    (task) =>
-      task.status === "AVAILABLE" &&
-      task.activationMode === "GEO",
-  );
+const {
+  activateTask:
+    activateManualTask,
+  activatingKey:
+    manualActivatingKey,
+  activationError:
+    manualActivationError,
+} = useManualTaskActivation({
+  runId: runId ?? "",
+  onActivated: refreshRun,
+});
 
-  const {supported: gpsSupported, position, error: gpsError, locating,} = useGeolocation(needsGps ?? false);
-  const {activationError} = useGeoTaskActivation({runId: runId ?? "", run, position, onActivated: refreshRun});
-  const {heading,enabled: compassEnabled, error: compassError,requestPermission:enableCompass} = useDeviceHeading();
+  const needsGps =
+    participantRun?.status === "IN_PROGRESS" &&
+    participantRun.tasks.some(
+      (task) =>
+        task.status === "AVAILABLE" &&
+        task.activationMode === "GEO",
+    );
+
+  const { supported: gpsSupported, position, error: gpsError, locating, } = useGeolocation(needsGps ?? false);
+  const { activationError } = useGeoTaskActivation({ runId: runId ?? "", run: participantRun, position, onActivated: refreshRun });
+  const { heading, enabled: compassEnabled, error: compassError, requestPermission: enableCompass } = useDeviceHeading();
   if (!runId) {
-  return (
-    <main>
-      <p>Ugyldigt run-id.</p>
+    return (
+      <main>
+        <p>Ugyldigt run-id.</p>
 
-      <button type="button" onClick={() => navigate("/runs")}
-      >
-        Tilbage
-      </button>
-    </main>
-  );
-}
+        <button type="button" onClick={() => navigate("/runs")}
+        >
+          Tilbage
+        </button>
+      </main>
+    );
+  }
   if (loading) {
     return <p>Henter øvelse...</p>;
   }
@@ -139,7 +158,7 @@ export default function RunPage() {
       <button
         className={styles.backButton}
         type="button"
-        onClick={() =>navigate("/runs")}
+        onClick={() => navigate("/runs")}
       >
         ← Mine øvelser
       </button>
@@ -169,91 +188,118 @@ export default function RunPage() {
 
       {run.status ===
         "NOT_STARTED" && (
-        <section>
-          <h2>
-            Øvelsen er ikke startet
-          </h2>
+          <section>
+            <h2>
+              Øvelsen er ikke startet
+            </h2>
 
-          <p>
-            Afvent at øvelsen bliver
-            startet.
-          </p>
+            <p>
+              Afvent at øvelsen bliver
+              startet.
+            </p>
+          </section>
+        )}
+
+      {run.status === "IN_PROGRESS" && (
+        <section>
+          <h2>Opgaver</h2>
+
+          {participantRun && needsGps && (
+            <>
+              <GpsStatus
+                supported={gpsSupported}
+                locating={locating}
+                position={position}
+                error={gpsError}
+                activationError={
+                  activationError
+                }
+              />
+
+              <GeoGuide
+                tasks={participantRun.tasks}
+                position={position}
+                heading={heading}
+                compassEnabled={
+                  compassEnabled
+                }
+                onEnableCompass={
+                  enableCompass
+                }
+                compassError={
+                  compassError
+                }
+              />
+            </>
+          )}
+
+          {instructorRun ? (
+            <InstructorRunView
+              run={instructorRun}
+              onActivate={activateManualTask}
+              activatingKey={manualActivatingKey}
+              activationError={manualActivationError}
+            />
+          ) : participantRun ? (
+            <div
+              className={styles.taskList}
+            >
+              {participantRun.tasks.map(
+                (task) => (
+                  <TaskCard
+                    key={task.id}
+                    runId={
+                      participantRun.id
+                    }
+                    task={task}
+                    onComplete={completeTask}
+                    completing={completingTaskId === task.id}
+                    onAnswered={refreshRun}
+                  />
+                ),
+              )}
+            </div>
+          ) : null}
         </section>
       )}
 
-    {run.status === "IN_PROGRESS" && (
-    <section>
-    <h2>Opgaver</h2>
-
-    {needsGps && (
-  <>
-    <GpsStatus
-      supported={gpsSupported}
-      locating={locating}
-      position={position}
-      error={gpsError}
-      activationError={
-        activationError
-      }
-    />
-
-    <GeoGuide
-      tasks={run.tasks}
-      position={position}
-      heading={heading}
-      compassEnabled={
-        compassEnabled
-      }
-      onEnableCompass={
-        enableCompass
-      }
-      compassError={
-        compassError
-      }
-    />
-  </>
-)}
-
-    {run.role === "INSTRUCTOR" ? (
-      <p>
-        Du deltager som instruktør
-        i denne afvikling.
-      </p>
-    ) : (
-      <div className={styles.taskList}>
-        {run.tasks.map((task) => (
-          <TaskCard 
-           key={task.id}
-           runId={run.id}
-           task={task}
-           onComplete={completeTask}
-           completing={completingTaskId === task.id}
-           onAnswered={refreshRun}
-           />
-          ))}
-      </div>
-    )}
-  </section>
-)}
-
-      {run.status ===
-        "COMPLETED" && (
+      {run.status === "COMPLETED" && (
         <section>
-          <h2>
-            Øvelsen er afsluttet
-          </h2>
-            <div className={styles.taskList}>
-          {run.tasks.map((task) => (
-              <TaskCard 
-               key={task.id}
-               runId={run.id}
-               task={task}
-               onComplete={completeTask}
-               completing={completingTaskId === task.id}
-               onAnswered={refreshRun}
-                />
-            ))}
+          <h2>Øvelsen er afsluttet</h2>
+
+          {instructorRun ? (
+            <InstructorRunView
+              run={instructorRun}
+              onActivate={
+                activateManualTask
+              }
+              activatingKey={null}
+              activationError={null}
+            />
+          ) : participantRun ? (
+            <div
+              className={styles.taskList}
+            >
+              {participantRun.tasks.map(
+                (task) => (
+                  <TaskCard
+                    key={task.id}
+                    runId={
+                      participantRun.id
+                    }
+                    task={task}
+                    onComplete={
+                      completeTask
+                    }
+                    completing={false}
+                    onAnswered={
+                      refreshRun
+                    }
+                  />
+                ),
+              )}
             </div>
+          ) : null}
         </section>
       )}
 
@@ -264,7 +310,7 @@ export default function RunPage() {
           </h2>
         </section>
       )}
-      {completionError &&(
+      {completionError && (
         <p role="alert">{completionError}</p>
       )}
     </main>

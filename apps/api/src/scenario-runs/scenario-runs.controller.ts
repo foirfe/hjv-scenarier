@@ -255,33 +255,25 @@ export class ScenarioRunsController {
       request.user.sub,
     );
   }
-  @Patch(':runId/tasks/:runTaskId/activate-manual')
-  @ApiOperation({
-    summary: 'Aktivere en opgave',
-    description: 'Aktiverer en opgave manuelt hvis den opfylder alle krav.',
-  })
-  @ApiParam({
-    name: 'runId',
-    description: 'UUID på det scenario run ',
-  })
-  @ApiParam({
-    name: 'runTaskId',
-    description: 'UUID på den opgave der skal aktiveres',
-  })
-  @ApiResponse({ status: 200, description: 'Opgaven er aktiveret.' })
-  @ApiResponse({
-    status: 400,
-    description: 'Opgaven kan ikke startes i sin nuværende tilstand.',
-  })
+  @Patch(':runId/tasks/:runTaskId/activate-manual/:targetUserId')
   activateTaskManually(
-    @Param('runId', ParseUUIDPipe) runId: string,
-    @Param('runTaskId', ParseUUIDPipe) runTaskId: string,
-    @Req() request: AuthenticatedRequest,
+    @Param('runId', ParseUUIDPipe)
+    runId: string,
+
+    @Param('runTaskId', ParseUUIDPipe)
+    runTaskId: string,
+
+    @Param('targetUserId', ParseUUIDPipe)
+    targetUserId: string,
+
+    @Req()
+    request: AuthenticatedRequest,
   ) {
     return this.scenarioRunsService.activateTaskManually(
       runId,
       runTaskId,
       request.user.sub,
+      targetUserId,
     );
   }
   @Patch(':runId/tasks/:runTaskId/checklist/:itemId')

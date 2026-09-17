@@ -13,7 +13,8 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
-    const user = await this.usersService.findByUsername(dto.username);
+    const username = dto.username.trim().toLowerCase();
+    const user = await this.usersService.findByUsername(username);
 
     if (!user) {
       throw new UnauthorizedException('Forkert brugernavn eller adgangskode');

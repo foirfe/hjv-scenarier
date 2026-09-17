@@ -748,7 +748,12 @@ export class ScenarioRunsService {
     };
   }
   //AKTIVERING AF TASK MANUELT
-  async activateTaskManually(runId: string, runTaskId: string, userId: string) {
+  async activateTaskManually(
+    runId: string,
+    runTaskId: string,
+    userId: string,
+    targetUserId: string,
+  ) {
     const runUser = await this.prisma.scenarioRunUser.findUnique({
       where: {
         scenarioRunId_userId: {
@@ -776,11 +781,6 @@ export class ScenarioRunsService {
       );
     }
 
-    if (runUser.role !== 'INSTRUCTOR') {
-      throw new ForbiddenException(
-        'Kun en instruktør kan aktivere denne opgave',
-      );
-    }
     const runTask = await this.prisma.scenarioRunTask.findFirst({
       where: {
         id: runTaskId,
@@ -811,22 +811,41 @@ export class ScenarioRunsService {
       },
     });
 
-    const result = await this.prisma.scenarioRunTaskProgress.updateMany({
+    const progress = await this.prisma.scenarioRunTaskProgress.findUnique({
       where: {
-        scenarioRunTaskId: runTaskId,
-        status: TaskProgressStatus.AVAILABLE,
+        scenarioRunTaskId_userId: {
+          scenarioRunTaskId: runTaskId,
+
+          userId: targetUserId,
+        },
+      },
+    });
+
+    if (!progress) {
+      throw new NotFoundException('Deltagerens opgave blev ikke fundet');
+    }
+
+    if (progress.status !== TaskProgressStatus.AVAILABLE) {
+      throw new BadRequestException(
+        'Opgaven er ikke klar til aktivering for denne deltager',
+      );
+    }
+
+    return this.prisma.scenarioRunTaskProgress.update({
+      where: {
+        scenarioRunTaskId_userId: {
+          scenarioRunTaskId: runTaskId,
+
+          userId: targetUserId,
+        },
       },
 
       data: {
         status: TaskProgressStatus.ACTIVE,
+
         startedAt,
       },
     });
-
-    return {
-      activatedUsers: result.count,
-      startedAt,
-    };
   }
   //FINDER BRUGERS RUNS
   findMyRuns(userId: string) {

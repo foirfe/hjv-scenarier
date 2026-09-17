@@ -68,21 +68,68 @@ export type RunTask = {
   }[];
 };
 
-export type RunDetail = {
+type RunBase = {
   id: string;
-
   status: ScenarioRunStatus;
 
   startedAt: string | null;
   completedAt: string | null;
-
-  role: ScenarioRole;
 
   scenario: {
     id: string;
     name: string;
     description: string | null;
   };
+};
 
-  tasks: RunTask[];
+export type ParticipantRunDetail =
+  RunBase & {
+    role:
+      | "PARTICIPANT"
+      | "TEAM_LEADER";
+
+    tasks: RunTask[];
+  };
+
+export type InstructorRunDetail =
+  RunBase & {
+    role: "INSTRUCTOR";
+
+    tasks: InstructorRunTask[];
+  };
+
+export type RunDetail =
+  | ParticipantRunDetail
+  | InstructorRunDetail;
+
+
+
+export type InstructorTaskParticipant = {
+  userId: string;
+  displayName: string;
+  username: string;
+
+  status: TaskProgressStatus;
+
+  availableAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+};
+
+export type InstructorRunTask = {
+  id: string;
+  name: string;
+
+  description: string | null;
+  instructions: string | null;
+  instructorInstructions: string | null;
+
+  answerType: AnswerType | null;
+  taskTypeCode: string | null;
+
+  activationMode: ActivationMode;
+
+  manualActivatedAt: string | null;
+
+  participants: InstructorTaskParticipant[];
 };

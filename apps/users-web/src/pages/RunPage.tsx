@@ -12,6 +12,7 @@ import { useGeoTaskActivation, } from "../hooks/useGeoTaskActivation";
 import { useTaskCompletion } from "../hooks/useTaskCompletion";
 import type { RunDetail, ScenarioRole, ScenarioRunStatus } from "../types/scenarioRun";
 import styles from "./RunPage.module.css";
+import { useRunControl } from "../hooks/useRunControl";
 
 //HELPER FUNKTIONER
 function getRunStatusLabel(
@@ -95,21 +96,31 @@ export default function RunPage() {
       setRun(data);
     }, [runId]);
   //DEFINER OM DET ER DELTAGER ELLER INSTRUKTØR RUN
-  const participantRun =run && run.role !== "INSTRUCTOR" ? run: null;
+  const participantRun = run && run.role !== "INSTRUCTOR" ? run : null;
   const instructorRun = run?.role === "INSTRUCTOR" ? run : null;
   const { completeTask, completingTaskId, completionError } = useTaskCompletion({ runId: runId ?? "", onCompleted: refreshRun });
 
-const {
-  activateTask:
+  const {
+    activateTask:
     activateManualTask,
-  activatingKey:
+    activatingKey:
     manualActivatingKey,
-  activationError:
+    activationError:
     manualActivationError,
-} = useManualTaskActivation({
-  runId: runId ?? "",
-  onActivated: refreshRun,
-});
+  } = useManualTaskActivation({
+    runId: runId ?? "",
+    onActivated: refreshRun,
+  });
+
+  const {
+    completeRun,
+    abortRun,
+    action: runAction,
+    error: runControlError,
+  } = useRunControl({
+    runId: runId ?? "",
+    onChanged: refreshRun,
+  });
 
   const needsGps =
     participantRun?.status === "IN_PROGRESS" &&
@@ -239,6 +250,10 @@ const {
               onActivate={activateManualTask}
               activatingKey={manualActivatingKey}
               activationError={manualActivationError}
+              onCompleteRun={completeRun}
+              onAbortRun={abortRun}
+              runAction={runAction}
+              runControlError={runControlError}
             />
           ) : participantRun ? (
             <div
@@ -270,11 +285,13 @@ const {
           {instructorRun ? (
             <InstructorRunView
               run={instructorRun}
-              onActivate={
-                activateManualTask
-              }
-              activatingKey={null}
-              activationError={null}
+              onActivate={activateManualTask}
+              activatingKey={manualActivatingKey}
+              activationError={manualActivationError}
+              onCompleteRun={completeRun}
+              onAbortRun={abortRun}
+              runAction={runAction}
+              runControlError={runControlError}
             />
           ) : participantRun ? (
             <div

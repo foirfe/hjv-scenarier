@@ -130,6 +130,7 @@ export default function RunSetupPage() {
   const [selectedRole, setSelectedRole] = useState<ScenarioRole>("PARTICIPANT");
   const [savingUser, setSavingUser] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [runAction, setRunAction] = useState<"complete" | "abort" | null>(null);
 
   const loadRun = useCallback(async () => {
     if (!runId) return;
@@ -282,6 +283,83 @@ export default function RunSetupPage() {
     }
   }
 
+  async function completeRun() {
+    if (
+      !runId ||
+      !run ||
+      run.status !== "IN_PROGRESS"
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Vil du afslutte afviklingen? Deltagerne kan ikke fortsætte bagefter.",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setRunAction("complete");
+      setError("");
+
+      await apiFetch(
+        `/scenario-runs/${runId}/complete`,
+        {
+          method: "PATCH",
+        },
+      );
+
+      await loadRun();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Afviklingen kunne ikke afsluttes",
+      );
+    } finally {
+      setRunAction(null);
+    }
+  }
+
+  async function abortRun() {
+    if (
+      !runId ||
+      !run ||
+      run.status !== "IN_PROGRESS"
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Vil du afbryde afviklingen? Den markeres som afbrudt, og deltagerne kan ikke fortsætte.",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setRunAction("abort");
+      setError("");
+
+      await apiFetch(
+        `/scenario-runs/${runId}/abort`,
+        {
+          method: "PATCH",
+        },
+      );
+
+      await loadRun();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Afviklingen kunne ikke afbrydes",
+      );
+    } finally {
+      setRunAction(null);
+    }
+  }
+
+
   if (loading) {
     return <div className={styles.runSetupPage}>Henter afvikling...</div>;
   }
@@ -415,6 +493,39 @@ export default function RunSetupPage() {
             >
               {starting ? "Starter..." : "Start afvikling"}
             </button>
+          )}
+          {run.status === "IN_PROGRESS" && (
+            <>
+              <button
+                type="button"
+                className={
+                  styles.completeRunButton
+                }
+                disabled={runAction !== null}
+                onClick={() =>
+                  void completeRun()
+                }
+              >
+                {runAction === "complete"
+                  ? "Afslutter..."
+                  : "Afslut afvikling"}
+              </button>
+
+              <button
+                type="button"
+                className={
+                  styles.abortRunButton
+                }
+                disabled={runAction !== null}
+                onClick={() =>
+                  void abortRun()
+                }
+              >
+                {runAction === "abort"
+                  ? "Afbryder..."
+                  : "Afbryd"}
+              </button>
+            </>
           )}
         </div>
       </header>

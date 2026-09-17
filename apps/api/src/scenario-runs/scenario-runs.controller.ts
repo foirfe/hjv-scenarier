@@ -322,4 +322,40 @@ export class ScenarioRunsController {
       dto,
     );
   }
+  //MARKERE SCENARIE SOM GENNEMFØRT
+  @Patch(':runId/complete')
+  @ApiOperation({
+    summary: 'Afslut scenario run manuelt',
+  })
+  completeRun(
+    @Param('runId', ParseUUIDPipe)
+    runId: string,
+
+    @Req()
+    request: AuthenticatedRequest,
+  ) {
+    return this.scenarioRunsService.completeRun(
+      runId,
+      request.user.sub,
+      request.user.role,
+    );
+  }
+  //MARKERER SCENARIE SOM AFBRUDT
+  @Patch(':runId/abort')
+  @ApiOperation({
+    summary: 'Afbryd scenario run',
+  })
+  abortRun(
+    @Param('runId', ParseUUIDPipe)
+    runId: string,
+
+    @Req()
+    request: AuthenticatedRequest,
+  ) {
+    return this.scenarioRunsService.abortRun(
+      runId,
+      request.user.sub,
+      request.user.role,
+    );
+  }
 }

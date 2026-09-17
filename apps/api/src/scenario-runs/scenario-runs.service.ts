@@ -1416,6 +1416,111 @@ export class ScenarioRunsService {
       allChecked,
     };
   }
+  //TIL AT MANUELT MARKERE AFVIKLING SOM GENNEMFØRT
+  async completeRun(runId: string, userId: string, userRole: UserRole) {
+    await this.ensureCanControlRun(runId, userId, userRole);
+
+    const run = await this.prisma.scenarioRun.findUnique({
+      where: {
+        id: runId,
+      },
+    });
+
+    if (!run) {
+      throw new NotFoundException('Scenarieafviklingen blev ikke fundet');
+    }
+
+    if (run.status !== 'IN_PROGRESS') {
+      throw new BadRequestException(
+        'Kun en igangværende afvikling kan afsluttes',
+      );
+    }
+
+    const completedAt = new Date();
+
+    return this.prisma.scenarioRun.update({
+      where: {
+        id: runId,
+      },
+
+      data: {
+        status: 'COMPLETED',
+        completedAt,
+      },
+
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        startedAt: true,
+        completedAt: true,
+      },
+    });
+  }
+  //MARKERE EN AFVIKLING SOM AFBRUDT
+  async abortRun(runId: string, userId: string, userRole: UserRole) {
+    await this.ensureCanControlRun(runId, userId, userRole);
+
+    const run = await this.prisma.scenarioRun.findUnique({
+      where: {
+        id: runId,
+      },
+    });
+
+    if (!run) {
+      throw new NotFoundException('Scenarieafviklingen blev ikke fundet');
+    }
+
+    if (run.status !== 'IN_PROGRESS') {
+      throw new BadRequestException(
+        'Kun en igangværende afvikling kan afbrydes',
+      );
+    }
+
+    return this.prisma.scenarioRun.update({
+      where: {
+        id: runId,
+      },
+
+      data: {
+        status: 'ABORTED',
+      },
+
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        startedAt: true,
+        completedAt: true,
+      },
+    });
+  }
+
+  //HELPER TIL AT FINDE HVEM HAR LOV TIL AT ÆNDRE RUNS
+  private async ensureCanControlRun(
+    runId: string,
+    userId: string,
+    userRole: UserRole,
+  ) {
+    if (userRole === UserRole.ADMIN) {
+      return;
+    }
+
+    const runUser = await this.prisma.scenarioRunUser.findUnique({
+      where: {
+        scenarioRunId_userId: {
+          scenarioRunId: runId,
+          userId,
+        },
+      },
+    });
+
+    if (!runUser || runUser.role !== ScenarioRole.INSTRUCTOR) {
+      throw new ForbiddenException(
+        'Du har ikke adgang til at styre denne afvikling',
+      );
+    }
+  }
 }
 //Hjælpefunktion som gør brug af Haversine-formlen
 function getDistanceMeters(

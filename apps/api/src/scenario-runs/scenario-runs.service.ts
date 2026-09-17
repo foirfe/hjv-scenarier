@@ -679,6 +679,30 @@ export class ScenarioRunsService {
           });
         }
       }
+      const remainingProgress = await tx.scenarioRunTaskProgress.count({
+        where: {
+          scenarioRunTask: {
+            scenarioRunId: runId,
+          },
+
+          status: {
+            not: TaskProgressStatus.COMPLETED,
+          },
+        },
+      });
+
+      if (remainingProgress === 0) {
+        await tx.scenarioRun.update({
+          where: {
+            id: runId,
+          },
+
+          data: {
+            status: 'COMPLETED',
+            completedAt,
+          },
+        });
+      }
       return completedProgress;
     });
   }

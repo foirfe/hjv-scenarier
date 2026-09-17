@@ -19,6 +19,7 @@ type RunStatus =
 
 type ScenarioRun = {
   id: string;
+  name: string | null;
   status: RunStatus;
 
   startedAt: string | null;
@@ -30,9 +31,9 @@ type ScenarioRun = {
     id: string;
     name: string;
     status:
-      | "DRAFT"
-      | "READY"
-      | "ARCHIVED";
+    | "DRAFT"
+    | "READY"
+    | "ARCHIVED";
   };
 
   _count: {
@@ -48,10 +49,11 @@ export default function RunsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const navigate = useNavigate();
 
-    const getRunsData = useCallback(async () => {return await apiFetch<ScenarioRun[]>("/scenario-runs");
-    }, []);
+  const getRunsData = useCallback(async () => {
+    return await apiFetch<ScenarioRun[]>("/scenario-runs");
+  }, []);
 
-    const refreshRuns = useCallback(async () => {
+  const refreshRuns = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -88,7 +90,7 @@ export default function RunsPage() {
     };
   }, [getRunsData]);
 
-    const handleCreated = () => {
+  const handleCreated = () => {
     setCreateOpen(false);
     refreshRuns();
   };
@@ -96,144 +98,151 @@ export default function RunsPage() {
 
   //RUN STATUS OG LABEL HELPER FUNKTION
   function runStatusLabel(
-  status: RunStatus,
-) {
-  switch (status) {
-    case "NOT_STARTED":
-      return "Ikke startet";
+    status: RunStatus,
+  ) {
+    switch (status) {
+      case "NOT_STARTED":
+        return "Ikke startet";
 
-    case "IN_PROGRESS":
-      return "I gang";
+      case "IN_PROGRESS":
+        return "I gang";
 
-    case "COMPLETED":
-      return "Afsluttet";
+      case "COMPLETED":
+        return "Afsluttet";
 
-    case "ABORTED":
-      return "Afbrudt";
+      case "ABORTED":
+        return "Afbrudt";
+    }
   }
-}
-function runStatusClass(
-  status: RunStatus,
-) {
-  switch (status) {
-    case "NOT_STARTED":
-      return styles.statusNotStarted;
+  function runStatusClass(
+    status: RunStatus,
+  ) {
+    switch (status) {
+      case "NOT_STARTED":
+        return styles.statusNotStarted;
 
-    case "IN_PROGRESS":
-      return styles.statusInProgress;
+      case "IN_PROGRESS":
+        return styles.statusInProgress;
 
-    case "COMPLETED":
-      return styles.statusCompleted;
+      case "COMPLETED":
+        return styles.statusCompleted;
 
-    case "ABORTED":
-      return styles.statusAborted;
+      case "ABORTED":
+        return styles.statusAborted;
+    }
   }
-}
   return (
     <div className={styles.page}>
       <PageHeader
         title="Afviklinger"
         description="Opret og administrér aktive og tidligere scenarieafviklinger"
         actions={
-            <div className={styles.actionButtons}>
-          <button
-            className={
-              styles.createButton
-            }
-            onClick={() =>
-              setCreateOpen(true)
-            }
-          >
-            + Ny afvikling
-          </button>
+          <div className={styles.actionButtons}>
+            <button
+              className={
+                styles.createButton
+              }
+              onClick={() =>
+                setCreateOpen(true)
+              }
+            >
+              + Ny afvikling
+            </button>
           </div>
         }
       />
 
-     <section className={styles.content}>
-  {loading && (
-    <p>Henter afviklinger...</p>
-  )}
+      <section className={styles.content}>
+        {loading && (
+          <p>Henter afviklinger...</p>
+        )}
 
-  {error && (
-    <p className={styles.error}>
-      {error}
-    </p>
-  )}
+        {error && (
+          <p className={styles.error}>
+            {error}
+          </p>
+        )}
 
-  {!loading && !error && (
-    <table>
-      <thead>
-        <tr>
-          <th>Scenarie</th>
-          <th>Status</th>
-          <th>Brugere</th>
-          <th>Oprettet</th>
-          <th>Startet</th>
-          <th></th>
-        </tr>
-      </thead>
+        {!loading && !error && (
+          <table>
+            <thead>
+              <tr>
+                <th>Scenarie</th>
+                <th>Status</th>
+                <th>Brugere</th>
+                <th>Oprettet</th>
+                <th>Startet</th>
+                <th></th>
+              </tr>
+            </thead>
 
-      <tbody>
-        {runs.map((run) => (
-          <tr key={run.id}>
-            <td>
-              <strong>
-                {run.scenario.name}
-              </strong>
-            </td>
+            <tbody>
+              {runs.map((run) => (
+                <tr key={run.id}>
+                  <td>
+                    <strong>
+                      {run.name ?? run.scenario.name}
+                    </strong>
 
-            <td>
-              <span className={`${styles.statusBadge} ${runStatusClass(run.status)}`}>
-                {runStatusLabel(
-                  run.status,
-                )}
-              </span>
-            </td>
+                    {run.name && (
+                      <small>
+                        {run.scenario.name}
+                      </small>
+                    )}
+                  </td>
 
-            <td>
-              {run._count.users}
-            </td>
+                  <td>
+                    <span className={`${styles.statusBadge} ${runStatusClass(run.status)}`}>
+                      {runStatusLabel(
+                        run.status,
+                      )}
+                    </span>
+                  </td>
 
-            <td>
-              {new Intl.DateTimeFormat(
-                "da-DK",
-              ).format(
-                new Date(
-                  run.createdAt,
-                ),
-              )}
-            </td>
+                  <td>
+                    {run._count.users}
+                  </td>
 
-            <td>
-              {run.startedAt
-                ? new Intl.DateTimeFormat(
-                    "da-DK",
-                    {
-                      dateStyle: "short",
-                      timeStyle: "short",
-                    },
-                  ).format(
-                    new Date(
-                      run.startedAt,
-                    ),
-                  )
-                : "—"}
-            </td>
+                  <td>
+                    {new Intl.DateTimeFormat(
+                      "da-DK",
+                    ).format(
+                      new Date(
+                        run.createdAt,
+                      ),
+                    )}
+                  </td>
 
-            <td>
-              <button onClick={()=>
-                navigate(`/runs/${run.id}`)
-              }>
-                Åbn
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  )}
-</section>
+                  <td>
+                    {run.startedAt
+                      ? new Intl.DateTimeFormat(
+                        "da-DK",
+                        {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        },
+                      ).format(
+                        new Date(
+                          run.startedAt,
+                        ),
+                      )
+                      : "—"}
+                  </td>
+
+                  <td>
+                    <button
+                    className={styles.openButton} 
+                    onClick={() =>
+                      navigate(`/runs/${run.id}`)}>
+                      Åbn
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
 
       <CreateRunDrawer
         open={createOpen}
@@ -241,7 +250,7 @@ function runStatusClass(
           setCreateOpen(false)
         }
         onCreated={() => {
-         handleCreated()
+          handleCreated()
         }}
       />
     </div>

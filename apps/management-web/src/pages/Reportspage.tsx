@@ -6,6 +6,9 @@ export default function ReportsPage() {
     <PageHeader
             title="Rapporter"
     />
+    <div>
+      <h2>Denne side er under udvikling</h2>
+    </div>
     </>
   )
 }

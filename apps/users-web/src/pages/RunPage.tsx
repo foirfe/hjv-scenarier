@@ -169,7 +169,7 @@ const {
         </p>
 
         <h1>
-          {run.scenario.name}
+          {run.name ?? run.scenario.name}
         </h1>
 
         {run.scenario.description && (

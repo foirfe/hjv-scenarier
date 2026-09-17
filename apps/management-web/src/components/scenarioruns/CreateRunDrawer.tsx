@@ -1,118 +1,121 @@
 import {
-    useEffect,
-    useState,
-    type SubmitEvent,
+  useEffect,
+  useState,
+  type SubmitEvent,
 } from "react";
 
 import { apiFetch } from "../../api/apiFetch";
 import styles from "./RunDrawer.module.css";
 
 type Scenario = {
-    id: string;
-    name: string;
-    description: string | null;
-    status:
-    | "DRAFT"
-    | "READY"
-    | "ARCHIVED";
+  id: string;
+  name: string;
+  description: string | null;
+  status:
+  | "DRAFT"
+  | "READY"
+  | "ARCHIVED";
 
-    _count: {
-        scenarioTasks: number;
-    };
+  _count: {
+    scenarioTasks: number;
+  };
 };
 
 type Props = {
-    open: boolean;
-    onClose: () => void;
-    onCreated: () => void;
+  open: boolean;
+  onClose: () => void;
+  onCreated: () => void;
 };
 
 export default function CreateRunDrawer({
-    open,
-    onClose,
-    onCreated,
+  open,
+  onClose,
+  onCreated,
 }: Props) {
-    const [scenarios, setScenarios] =
-        useState<Scenario[]>([]);
+  const [scenarios, setScenarios] =
+    useState<Scenario[]>([]);
 
-    const [scenarioId, setScenarioId] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState("");
+  const [scenarioId, setScenarioId] = useState("");
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-    useEffect(() => {
-        if (!open) return;
+  useEffect(() => {
+    if (!open) return;
 
-        async function loadScenarios() {
-            try {
-                setLoading(true);
+    async function loadScenarios() {
+      try {
+        setLoading(true);
 
-                const data =
-                    await apiFetch<Scenario[]>(
-                        "/scenarios",
-                    );
+        const data =
+          await apiFetch<Scenario[]>(
+            "/scenarios",
+          );
 
-                setScenarios(
-                    data.filter(
-                        (scenario) =>
-                            scenario.status ===
-                            "READY",
-                    ),
-                );
-            } catch {
-                setError(
-                    "Kunne ikke hente scenarier",
-                );
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        void loadScenarios();
-    }, [open]);
-
-    async function handleSubmit(
-        event: SubmitEvent,
-    ) {
-        event.preventDefault();
-
-        if (!scenarioId) {
-            setError(
-                "Vælg et scenarie",
-            );
-            return;
-        }
-
-        try {
-            setSaving(true);
-            setError("");
-
-            await apiFetch(
-                "/scenario-runs",
-                {
-                    method: "POST",
-                    body: JSON.stringify({
-                        scenarioId,
-                    }),
-                },
-            );
-
-            setScenarioId("");
-            onCreated();
-        } catch (error) {
-            setError(
-                error instanceof Error
-                    ? error.message
-                    : "Afviklingen kunne ikke oprettes",
-            );
-        } finally {
-            setSaving(false);
-        }
+        setScenarios(
+          data.filter(
+            (scenario) =>
+              scenario.status ===
+              "READY",
+          ),
+        );
+      } catch {
+        setError(
+          "Kunne ikke hente scenarier",
+        );
+      } finally {
+        setLoading(false);
+      }
     }
 
-    if (!open) return null;
+    void loadScenarios();
+  }, [open]);
 
-   return (
+  async function handleSubmit(
+    event: SubmitEvent,
+  ) {
+    event.preventDefault();
+
+    if (!scenarioId) {
+      setError(
+        "Vælg et scenarie",
+      );
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError("");
+
+      await apiFetch(
+        "/scenario-runs",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            scenarioId,
+            name: name.trim() || undefined,
+          }),
+        },
+      );
+
+      setScenarioId("");
+      setName("");
+      onCreated();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Afviklingen kunne ikke oprettes",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!open) return null;
+
+  return (
     <div className={styles.drawerLayer}>
       <button
         type="button"
@@ -172,7 +175,23 @@ export default function CreateRunDrawer({
                 )}
               </select>
             </label>
+            <label>
+              <span>Navn på afvikling</span>
 
+              <input
+                type="text"
+                value={name}
+                onChange={(event) =>
+                  setName(event.target.value)
+                }
+                placeholder="Fx NAV I 17-09 eller NAV I Testafvikling"
+              />
+
+              <small>
+                Hvis feltet er tomt, bruges
+                scenariets navn.
+              </small>
+            </label>
             {scenarioId && (
               <div className={styles.infoBox}>
                 {scenarios.find(

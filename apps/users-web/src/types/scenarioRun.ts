@@ -70,6 +70,7 @@ export type RunTask = {
 
 type RunBase = {
   id: string;
+  name: string | null;
   status: ScenarioRunStatus;
 
   startedAt: string | null;

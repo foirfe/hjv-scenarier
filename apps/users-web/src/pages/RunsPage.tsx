@@ -21,6 +21,7 @@ type MyRun = {
   role: ScenarioRole;
   scenarioRun: {
     id: string;
+    name: string;
     status: ScenarioRunStatus;
     startedAt: string | null;
     completedAt: string | null;
@@ -178,7 +179,7 @@ return (
               </div>
 
               <h2>
-                {scenarioRun.scenario.name}
+                {scenarioRun.name ?? scenarioRun.scenario.name}
               </h2>
 
               {scenarioRun.scenario

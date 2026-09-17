@@ -25,6 +25,7 @@ type RunUser = {
 
 type ScenarioRun = {
   id: string;
+  name: string | null;
   status: RunStatus;
   startedAt: string | null;
   completedAt: string | null;
@@ -119,6 +120,9 @@ export default function RunSetupPage() {
   const { runId } = useParams();
   const navigate = useNavigate();
   const [run, setRun] = useState<ScenarioRun | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [runName, setRunName] = useState("");
+  const [savingName, setSavingName] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -221,6 +225,39 @@ export default function RunSetupPage() {
       setError("Brugeren kunne ikke fjernes");
     }
   }
+  //EDIT OG GEM NYT SCENARIE NAVN
+  function startEditingName() {
+    setRunName(run?.name ?? run?.scenario.name ?? "");
+    setEditingName(true);
+  }
+
+  async function saveRunName() {
+    if (!runId) return;
+    try {
+      setSavingName(true);
+      setError("");
+      await apiFetch(
+        `/scenario-runs/${runId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            name:
+              runName.trim() || null,
+          }),
+        },
+      );
+      setEditingName(false);
+      await loadRun();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Navnet kunne ikke gemmes",
+      );
+    } finally {
+      setSavingName(false);
+    }
+  }
 
   async function startRun() {
     if (!runId || !run) return;
@@ -296,9 +333,72 @@ export default function RunSetupPage() {
           <button onClick={() => navigate("/runs")}>
             &larr; Afviklinger
           </button>
+          <div className={styles.runTitleArea}>
+            <span className={styles.scenarioReference}>
+              Scenarie: {run.scenario.name}
+            </span>
 
-          <h1>{run.scenario.name}</h1>
+            {editingName ? (
+              <div className={styles.titleEditRow}>
+                <input
+                  className={styles.titleInput}
+                  value={runName}
+                  autoFocus
+                  onChange={(event) =>
+                    setRunName(event.target.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      void saveRunName();
+                    }
 
+                    if (event.key === "Escape") {
+                      setRunName(
+                        run.name ??
+                        run.scenario.name,
+                      );
+                      setEditingName(false);
+                    }
+                  }}
+                />
+
+                <button
+                  type="button"
+                  className={styles.saveNameButton}
+                  disabled={savingName}
+                  onClick={() =>
+                    void saveRunName()
+                  }
+                >
+                  {savingName ? "Gemmer..." : "Gem"}
+                </button>
+
+                <button
+                  type="button"
+                  className={styles.cancelNameButton}
+                  onClick={() => {
+                    setRunName(
+                      run.name ??
+                      run.scenario.name,
+                    );
+                    setEditingName(false);
+                  }}
+                >
+                  Annuller
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className={styles.editableTitle}
+                onClick={startEditingName}
+                title="Klik for at redigere navn"
+              >
+                {run.name ??
+                  run.scenario.name}
+              </button>
+            )}
+          </div>
           <p>{run.scenario.description ?? "Ingen beskrivelse"}</p>
         </div>
 
@@ -452,8 +552,8 @@ export default function RunSetupPage() {
                       </td>
 
                       <td>
-                        <button className={styles.removeButton }
-                          onClick={() =>void removeUser(runUser.user,)}>
+                        <button className={styles.removeButton}
+                          onClick={() => void removeUser(runUser.user,)}>
                           Fjern
                         </button>
                       </td>
@@ -533,7 +633,7 @@ export default function RunSetupPage() {
           </div>
 
 
-          <div className={ styles.overviewSection}>
+          <div className={styles.overviewSection}>
             <div className={styles.sectionHeader}>
               <div>
                 <h2>Deltagerstatus</h2>
@@ -547,7 +647,7 @@ export default function RunSetupPage() {
 
               <button
                 className={styles.refreshButton}
-                onClick={() =>void loadRun()}>
+                onClick={() => void loadRun()}>
                 Opdater
               </button>
             </div>
@@ -568,7 +668,8 @@ export default function RunSetupPage() {
 
                 <tbody>
                   {run.users.map(
-                    (runUser) => {const progress = getUserProgress(run,runUser.user.id,);
+                    (runUser) => {
+                      const progress = getUserProgress(run, runUser.user.id,);
 
                       return (
                         <tr key={runUser.user.id}>
@@ -606,7 +707,7 @@ export default function RunSetupPage() {
                                   progress.completed
                                 }{" "}
                                 /{" "}
-                                { progress.total}
+                                {progress.total}
                               </td>
 
                               <td>
@@ -618,12 +719,12 @@ export default function RunSetupPage() {
                                   className={styles.progressCell}>
                                   <div className={styles.progressTrack} >
                                     <div
-                                      className={ styles.progressValue}
-                                      style={{ width: `${progress.percentage}%`,}}
+                                      className={styles.progressValue}
+                                      style={{ width: `${progress.percentage}%`, }}
                                     />
                                   </div>
 
-                                  <span> { progress.percentage } % </span>
+                                  <span> {progress.percentage} % </span>
                                 </div>
                               </td>
                             </>
@@ -671,7 +772,8 @@ export default function RunSetupPage() {
 
                 <tbody>
                   {run.tasks.map(
-                    (task) => {const completed =task.progress.filter((row) => row.status === "COMPLETED",).length;
+                    (task) => {
+                      const completed = task.progress.filter((row) => row.status === "COMPLETED",).length;
 
                       const active = task.progress.filter((row) => row.status === "ACTIVE",).length;
 
@@ -688,7 +790,7 @@ export default function RunSetupPage() {
                           </td>
 
                           <td>
-                            {task.activationMode ==="GEO" ? "GPS": task.activationMode === "AUTOMATIC" ? "Automatisk": "Manuel"}
+                            {task.activationMode === "GEO" ? "GPS" : task.activationMode === "AUTOMATIC" ? "Automatisk" : "Manuel"}
                           </td>
 
                           <td>

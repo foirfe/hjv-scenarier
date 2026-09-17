@@ -195,6 +195,7 @@ model ScenarioTaskDependency {
 
 model ScenarioRun {
   id         String            @id @default(uuid()) @db.Uuid
+  name       String?
   scenarioId String            @map("scenario_id") @db.Uuid
   status     ScenarioRunStatus @default(NOT_STARTED)
 

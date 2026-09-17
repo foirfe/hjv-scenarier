@@ -22,6 +22,7 @@ import { UserRole } from '../../generated/prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 import { CreateScenarioRunDto } from './dto/create-scenario-run.dto';
+import { UpdateScenarioRunDto } from './dto/update-scenario-run.dto';
 import { AddScenarioRunUserDto } from './dto/add-scenario-run-user.dto';
 import type { AuthenticatedRequest } from '../auth/types/authenticated-request';
 import { ScenarioRunsService } from './scenario-runs.service';
@@ -51,6 +52,21 @@ export class ScenarioRunsController {
   })
   create(@Body() dto: CreateScenarioRunDto) {
     return this.scenarioRunsService.create(dto);
+  }
+  //OPDATERE SCENARIE AFVIKLING
+  @Patch(':runId')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Opdatér scenario run',
+  })
+  update(
+    @Param('runId', ParseUUIDPipe)
+    runId: string,
+
+    @Body()
+    dto: UpdateScenarioRunDto,
+  ) {
+    return this.scenarioRunsService.update(runId, dto);
   }
   //Add Scenario Run User
   @Post(':runId/users')

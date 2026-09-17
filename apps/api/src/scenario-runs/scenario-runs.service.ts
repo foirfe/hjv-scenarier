@@ -14,6 +14,7 @@ import {
   ScenarioRole,
 } from '../../generated/prisma/client';
 import { CreateScenarioRunDto } from './dto/create-scenario-run.dto';
+import { UpdateScenarioRunDto } from './dto/update-scenario-run.dto';
 import { AddScenarioRunUserDto } from './dto/add-scenario-run-user.dto';
 import { RemoveScenarioRunUserDto } from './dto/remove-scenario-run-user.dto';
 import { UpdateScenarioRunUserDto } from './dto/update-scenario-run.user.dto';
@@ -37,9 +38,11 @@ export class ScenarioRunsService {
     return this.prisma.scenarioRun.create({
       data: {
         scenarioId: dto.scenarioId,
+        name: dto.name?.trim() || null,
       },
       select: {
         id: true,
+        name: true,
         scenarioId: true,
         status: true,
         startedAt: true,
@@ -52,6 +55,37 @@ export class ScenarioRunsService {
             status: true,
           },
         },
+      },
+    });
+  }
+  async update(runId: string, dto: UpdateScenarioRunDto) {
+    const run = await this.prisma.scenarioRun.findUnique({
+      where: {
+        id: runId,
+      },
+    });
+
+    if (!run) {
+      throw new NotFoundException('Scenarieafviklingen blev ikke fundet');
+    }
+
+    return this.prisma.scenarioRun.update({
+      where: {
+        id: runId,
+      },
+
+      data: {
+        name: dto.name?.trim() || null,
+      },
+
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        scenarioId: true,
+        startedAt: true,
+        completedAt: true,
+        updatedAt: true,
       },
     });
   }
@@ -128,6 +162,7 @@ export class ScenarioRunsService {
       },
       select: {
         id: true,
+        name: true,
         status: true,
         startedAt: true,
         completedAt: true,
@@ -187,6 +222,7 @@ export class ScenarioRunsService {
     return this.prisma.scenarioRun.findMany({
       select: {
         id: true,
+        name: true,
         status: true,
         startedAt: true,
         completedAt: true,
@@ -860,6 +896,7 @@ export class ScenarioRunsService {
         scenarioRun: {
           select: {
             id: true,
+            name: true,
             status: true,
             startedAt: true,
             completedAt: true,
@@ -894,6 +931,7 @@ export class ScenarioRunsService {
         scenarioRun: {
           select: {
             id: true,
+            name: true,
             status: true,
             startedAt: true,
             completedAt: true,
@@ -985,6 +1023,7 @@ export class ScenarioRunsService {
     if (runUser.role === ScenarioRole.INSTRUCTOR) {
       return {
         id: run.id,
+        name: run.name,
         status: run.status,
         startedAt: run.startedAt,
         completedAt: run.completedAt,
@@ -1027,6 +1066,7 @@ export class ScenarioRunsService {
 
     return {
       id: run.id,
+      name: run.name,
       status: run.status,
       startedAt: run.startedAt,
       completedAt: run.completedAt,

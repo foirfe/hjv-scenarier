@@ -19,6 +19,13 @@ type ImportPreviewRow = {
   rowNumber: number;
   valid: boolean;
   errors: string[];
+
+  duplicate: boolean;
+
+  existingTask: {
+    id: string;
+    name: string;
+  } | null;
   data: {
     name: string;
     description: string | null;
@@ -46,15 +53,16 @@ export class TaskImportService {
   //LAVER TEMPLATE EXCEL FIL UD FRA DATA
   async createTemplate(): Promise<Buffer> {
     const [environments, taskTypes] = await Promise.all([
-      this.prisma.environment.findMany({
-        orderBy: {
-          name: 'asc',
-        },
-      }),
+      this.prisma.environment.findMany(),
 
-      this.prisma.taskType.findMany({
-        orderBy: {
-          name: 'asc',
+      this.prisma.taskType.findMany(),
+
+      this.prisma.task.findMany({
+        select: {
+          id: true,
+          name: true,
+          environmentId: true,
+          taskTypeId: true,
         },
       }),
     ]);
@@ -237,10 +245,19 @@ export class TaskImportService {
       throw new BadRequestException('Excel-filen mangler arket "Opgaver"');
     }
 
-    const [environments, taskTypes] = await Promise.all([
+    const [environments, taskTypes, existingTasks] = await Promise.all([
       this.prisma.environment.findMany(),
 
       this.prisma.taskType.findMany(),
+
+      this.prisma.task.findMany({
+        select: {
+          id: true,
+          name: true,
+          environmentId: true,
+          taskTypeId: true,
+        },
+      }),
     ]);
 
     const rows: ImportPreviewRow[] = [];
@@ -264,7 +281,15 @@ export class TaskImportService {
           return;
         }
 
-        rows.push(this.parseRow(rowNumber, values, environments, taskTypes));
+        rows.push(
+          this.parseRow(
+            rowNumber,
+            values,
+            environments,
+            taskTypes,
+            existingTasks,
+          ),
+        );
       },
     );
 
@@ -354,14 +379,23 @@ export class TaskImportService {
   private parseRow(
     rowNumber: number,
     values: string[],
+
     environments: {
       id: number;
       name: string;
     }[],
+
     taskTypes: {
       id: number;
       code: string;
       name: string;
+    }[],
+
+    existingTasks: {
+      id: string;
+      name: string;
+      environmentId: number;
+      taskTypeId: number;
     }[],
   ): ImportPreviewRow {
     const [
@@ -387,6 +421,16 @@ export class TaskImportService {
     const taskType = taskTypes.find(
       (item) => item.name.toLowerCase() === taskTypeName.toLowerCase(),
     );
+
+    const existingTask =
+      environment && taskType
+        ? existingTasks.find(
+            (task) =>
+              this.normalizeName(task.name) === this.normalizeName(name) &&
+              task.environmentId === environment.id &&
+              task.taskTypeId === taskType.id,
+          )
+        : undefined;
 
     if (!name) {
       errors.push('Navn er obligatorisk');
@@ -457,6 +501,15 @@ export class TaskImportService {
       rowNumber,
       valid: errors.length === 0,
       errors,
+
+      duplicate: existingTask !== undefined,
+
+      existingTask: existingTask
+        ? {
+            id: existingTask.id,
+            name: existingTask.name,
+          }
+        : null,
 
       data: {
         name,
@@ -574,5 +627,8 @@ export class TaskImportService {
         sortOrder: 1,
       },
     ];
+  }
+  private normalizeName(value: string) {
+    return value.trim().toLowerCase().replace(/\s+/g, ' ');
   }
 }

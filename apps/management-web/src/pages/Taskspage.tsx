@@ -1,4 +1,5 @@
 import PageHeader from "../components/Pageheader"
+import ImportTasksDrawer from "../components/tasks/ImportTasksDrawer";
 import CreateTaskDrawer from "../components/tasks/CreateTaskDrawer";
 import EditTaskDrawer from "../components/tasks/EditTaskDrawer";
 import { useEffect, useState, useCallback } from "react";
@@ -39,6 +40,7 @@ export default function TasksPage() {
   const [search, setSearch] = useState("");
   const [environment, setEnvironment] = useState("");
   const [taskType, setTaskType] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
   const [taskStatus, setTaskStatus] = useState<"" | TaskStatus>("");
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
 
@@ -121,7 +123,11 @@ export default function TasksPage() {
         description="Administrér genanvendelige opgaveskabeloner til øvelsesscenarier"
         actions={
           <div className={styles.actionButtons}>
-            <button className={styles.importButton}>Importer Excel</button>
+            <button
+              className={styles.importButton}
+              onClick={() => setImportOpen(true)}>
+              Importer Excel
+            </button>
             <button className={styles.createButton} onClick={() => setCreateOpen(true)}>+ Ny Opgave</button>
           </div>
         }
@@ -223,12 +229,12 @@ export default function TasksPage() {
                       <td>{task.environment.name}</td>
                       <td className={styles.taskDescription}>{task.description ?? "N/A"}</td>
                       <td>{task._count.scenarioTasks || "N/A"}</td>
-                      <td>  
-                      <span
-                        className={`${styles.statusBadge} ${task.status === "ACTIVE" ? styles.statusActive:task.status === "ARCHIVED" ? styles.statusArchived  : styles.statusDraft }`}>                        
-                                  {task.status === "ACTIVE" ? "Aktiv" : task.status === "ARCHIVED" ? "Arkiveret": "Kladde"}
+                      <td>
+                        <span
+                          className={`${styles.statusBadge} ${task.status === "ACTIVE" ? styles.statusActive : task.status === "ARCHIVED" ? styles.statusArchived : styles.statusDraft}`}>
+                          {task.status === "ACTIVE" ? "Aktiv" : task.status === "ARCHIVED" ? "Arkiveret" : "Kladde"}
                         </span>
-                        </td>
+                      </td>
                       <td>
                         {new Intl.DateTimeFormat("da-DK", {
                           day: "2-digit",
@@ -238,7 +244,7 @@ export default function TasksPage() {
                       </td>
                       <td>
                         <button
-                        className={styles.editButton}
+                          className={styles.editButton}
                           onClick={() => setEditTaskId(task.id)}
                         >
                           Redigér
@@ -264,13 +270,17 @@ export default function TasksPage() {
         }}
       />
       <EditTaskDrawer
-  taskId={editTaskId}
-  onClose={() => setEditTaskId(null)}
-  onUpdated={() => {
-    setEditTaskId(null);
-    handleCreated()
-  }}
-/>
+        taskId={editTaskId}
+        onClose={() => setEditTaskId(null)}
+        onUpdated={() => {
+          setEditTaskId(null);
+          handleCreated()
+        }}
+      />
+      <ImportTasksDrawer
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+      />
     </div>
   );
 }

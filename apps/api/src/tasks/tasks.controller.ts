@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -7,25 +8,46 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Res,
+  StreamableFile,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import type { Response } from 'express';
+
 import { TasksService } from './tasks.service';
+import { TaskImportService } from './task-import.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { UserRole } from '../../generated/prisma/enums';
 import { Roles } from '@/auth/decorators/roles.decorator';
+
+type UploadedExcelFile = {
+  originalname: string;
+  mimetype: string;
+  size: number;
+  buffer: Buffer;
+};
 
 @ApiTags('tasks')
 @ApiBearerAuth()
 @Controller('tasks')
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(
+    private readonly tasksService: TasksService,
+
+    private readonly taskImportService: TaskImportService,
+  ) {}
   @Get()
   @Roles(UserRole.ADMIN)
   @ApiOperation({
@@ -115,5 +137,69 @@ export class TasksController {
   @ApiResponse({ status: 404, description: 'Opgaven blev ikke fundet.' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.tasksService.remove(id);
+  }
+  @Get('import/template')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Download Excel-skabelon til opgaveimport',
+  })
+  async downloadImportTemplate(
+    @Res({
+      passthrough: true,
+    })
+    response: Response,
+  ) {
+    const file = await this.taskImportService.createTemplate();
+
+    response.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+
+    response.setHeader(
+      'Content-Disposition',
+      'attachment; filename="HJV-opgave-import.xlsx"',
+    );
+
+    return new StreamableFile(file);
+  }
+  @Post('import/preview')
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Validér Excel-fil før import af opgaver',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  previewImport(
+    @UploadedFile()
+    file?: UploadedExcelFile,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Der blev ikke uploadet en fil');
+    }
+
+    if (!file.originalname.toLowerCase().endsWith('.xlsx')) {
+      throw new BadRequestException('Kun .xlsx-filer understøttes');
+    }
+
+    return this.taskImportService.previewImport(file.buffer);
   }
 }

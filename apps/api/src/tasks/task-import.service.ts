@@ -311,6 +311,112 @@ export class TaskImportService {
     };
   }
 
+  async importTasks(buffer: Buffer, selectedRows: number[]) {
+    if (selectedRows.length === 0) {
+      throw new BadRequestException('Vælg mindst én opgave til import');
+    }
+
+    const uniqueRows = [...new Set(selectedRows)];
+
+    const preview = await this.previewImport(buffer);
+
+    const selectedPreviewRows = preview.rows.filter((row) =>
+      uniqueRows.includes(row.rowNumber),
+    );
+
+    if (selectedPreviewRows.length !== uniqueRows.length) {
+      throw new BadRequestException(
+        'En eller flere valgte rækker findes ikke i Excel-filen',
+      );
+    }
+
+    const invalidRows = selectedPreviewRows.filter((row) => !row.valid);
+
+    if (invalidRows.length > 0) {
+      throw new BadRequestException(
+        `Følgende rækker kan ikke importeres: ${invalidRows
+          .map((row) => row.rowNumber)
+          .join(', ')}`,
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const importedTasks: {
+        rowNumber: number;
+        id: string;
+        name: string;
+      }[] = [];
+
+      for (const row of selectedPreviewRows) {
+        const data = row.data;
+
+        if (
+          data.environmentId === null ||
+          data.taskTypeId === null ||
+          data.status === null
+        ) {
+          throw new BadRequestException(
+            `Række ${row.rowNumber} mangler gyldige stamdata`,
+          );
+        }
+
+        const task = await tx.task.create({
+          data: {
+            name: data.name,
+
+            description: data.description,
+
+            instructions: data.instructions,
+
+            instructorInstructions: data.instructorInstructions,
+
+            environmentId: data.environmentId,
+
+            taskTypeId: data.taskTypeId,
+
+            status: data.status,
+
+            answerType: data.answerType,
+
+            ...(data.options.length > 0
+              ? {
+                  options: {
+                    create: data.options,
+                  },
+                }
+              : {}),
+
+            ...(data.checklistItems.length > 0
+              ? {
+                  checklistItems: {
+                    create: data.checklistItems,
+                  },
+                }
+              : {}),
+          },
+
+          select: {
+            id: true,
+            name: true,
+          },
+        });
+
+        importedTasks.push({
+          rowNumber: row.rowNumber,
+
+          id: task.id,
+          name: task.name,
+        });
+      }
+
+      return {
+        importedCount: importedTasks.length,
+
+        importedTasks,
+      };
+    });
+  }
+
   private createGuideSheet(worksheet: Worksheet) {
     worksheet.columns = [
       {

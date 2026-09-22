@@ -280,6 +280,7 @@ export default function TasksPage() {
       <ImportTasksDrawer
         open={importOpen}
         onClose={() => setImportOpen(false)}
+        onImported={() => {setImportOpen(false); void refreshTasks();}}
       />
     </div>
   );

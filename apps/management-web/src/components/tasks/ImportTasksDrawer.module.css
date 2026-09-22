@@ -589,20 +589,34 @@
 }
 
 .importSummary span {
-  color:
-    var(--color-muted);
-
+  color: var(--color-muted);
   font-size: 0.75rem;
 }
 
 .importSummary strong {
-  color:
-    var(--color-text);
-
+  color: var(--color-text);
   font-size: 1rem;
 }
 
 .importSummary small {
-  color:
-    var(--color-muted);
+  color: var(--color-muted);
+}
+.importButton {
+  padding: 10px 16px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-small);
+  background: var(--color-primary);
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.importButton:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.importButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

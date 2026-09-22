@@ -202,4 +202,76 @@ export class TasksController {
 
     return this.taskImportService.previewImport(file.buffer);
   }
+  @Post('import')
+  @Roles(UserRole.ADMIN)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Importer valgte opgaver fra Excel',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+
+        selectedRows: {
+          type: 'string',
+          example: '[2,3,5]',
+        },
+      },
+
+      required: ['file', 'selectedRows'],
+    },
+  })
+  importTasks(
+    @UploadedFile()
+    file?: UploadedExcelFile,
+
+    @Body('selectedRows')
+    selectedRowsRaw?: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Der blev ikke uploadet en fil');
+    }
+
+    if (!file.originalname.toLowerCase().endsWith('.xlsx')) {
+      throw new BadRequestException('Kun .xlsx-filer understøttes');
+    }
+
+    if (!selectedRowsRaw) {
+      throw new BadRequestException('Der blev ikke valgt nogen rækker');
+    }
+
+    let parsedRows: unknown;
+
+    try {
+      parsedRows = JSON.parse(selectedRowsRaw);
+    } catch {
+      throw new BadRequestException('selectedRows har ugyldigt format');
+    }
+
+    if (
+      !Array.isArray(parsedRows) ||
+      !parsedRows.every(
+        (row) => typeof row === 'number' && Number.isInteger(row) && row >= 2,
+      )
+    ) {
+      throw new BadRequestException(
+        'selectedRows skal være en liste af gyldige rækkenumre',
+      );
+    }
+    const validRows = parsedRows as number[];
+    return this.taskImportService.importTasks(file.buffer, validRows);
+  }
 }

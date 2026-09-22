@@ -36,11 +36,13 @@ type ImportPreview = {
 type Props = {
     open: boolean;
     onClose: () => void;
+    onImported: () => void;
 };
 
 export default function ImportTasksDrawer({
     open,
     onClose,
+    onImported,
 }: Props) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [file, setFile] = useState<File | null>(null);
@@ -49,6 +51,7 @@ export default function ImportTasksDrawer({
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState("");
     const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
+    const [importing, setImporting] = useState(false);
 
     function resetFile() {
         setFile(null);
@@ -60,7 +63,6 @@ export default function ImportTasksDrawer({
                 "";
         }
     }
-
     function handleFileChange(
         event:
             ChangeEvent<HTMLInputElement>,
@@ -84,16 +86,10 @@ export default function ImportTasksDrawer({
                 .endsWith(".xlsx")
         ) {
             setFile(null);
-
-            setError(
-                "Vælg en Excel-fil i .xlsx-format",
-            );
-
+            setError("Vælg en Excel-fil i .xlsx-format");
             event.target.value = "";
-
             return;
         }
-
         setFile(selectedFile);
     }
 
@@ -119,26 +115,19 @@ export default function ImportTasksDrawer({
 
     async function previewImport() {
         if (!file) {
-            setError(
-                "Vælg først en Excel-fil",
-            );
-
+            setError("Vælg først en Excel-fil");
             return;
         }
-
         try {
             setUploading(true);
             setError("");
             setPreview(null);
-
             const formData =
                 new FormData();
-
             formData.append(
                 "file",
                 file,
             );
-
             const result =
                 await apiFetch<ImportPreview>(
                     "/tasks/import/preview",
@@ -149,7 +138,6 @@ export default function ImportTasksDrawer({
                 );
 
             setPreview(result);
-
             setSelectedRows(
                 new Set(
                     result.rows
@@ -174,9 +162,55 @@ export default function ImportTasksDrawer({
             setUploading(false);
         }
     }
-
     if (!open) {
         return null;
+    }
+
+    async function importSelectedTasks() {
+        if (!file || selectedRows.size === 0) {
+            return;
+        }
+
+        const confirmed =
+            window.confirm(`Vil du importere ${selectedRows.size} ${selectedRows.size === 1 ? "opgave" : "opgaver"}?`);
+        if (!confirmed) {
+            return;
+        }
+        try {
+            setImporting(true);
+            setError("");
+            const formData =
+                new FormData();
+            formData.append(
+                "file",
+                file,
+            );
+            formData.append(
+                "selectedRows",
+                JSON.stringify(
+                    [...selectedRows].sort(
+                        (a, b) => a - b,
+                    ),
+                ),
+            );
+            await apiFetch(
+                "/tasks/import",
+                {
+                    method: "POST",
+                    body: formData,
+                },
+            );
+            resetFile();
+            onImported();
+        } catch (error) {
+            setError(
+                error instanceof Error
+                    ? error.message
+                    : "Opgaverne kunne ikke importeres",
+            );
+        } finally {
+            setImporting(false);
+        }
     }
 
     return (
@@ -303,11 +337,7 @@ export default function ImportTasksDrawer({
                             </label>
 
                             {file && (
-                                <div
-                                    className={
-                                        styles.fileActions
-                                    }
-                                >
+                                <div className={styles.fileActions}>
                                     <span>
                                         {(
                                             file.size /
@@ -318,10 +348,7 @@ export default function ImportTasksDrawer({
 
                                     <button
                                         type="button"
-                                        onClick={
-                                            resetFile
-                                        }
-                                    >
+                                        onClick={resetFile}>
                                         Fjern
                                     </button>
                                 </div>
@@ -350,6 +377,10 @@ export default function ImportTasksDrawer({
                             preview={preview}
                             selectedRows={selectedRows}
                             onSelectionChange={setSelectedRows}
+                            importing={importing}
+                            onImport={() =>
+                                void importSelectedTasks()
+                            }
                         />
                     )}
                 </div>
@@ -366,12 +397,16 @@ type ImportPreviewResultProps = {
     onSelectionChange: (
         rows: Set<number>,
     ) => void;
+    importing: boolean;
+    onImport: () => void;
 };
 
 function ImportPreviewResult({
     preview,
     selectedRows,
     onSelectionChange,
+    importing,
+    onImport,
 }: ImportPreviewResultProps) {
     const duplicateCount =
         preview.rows.filter(
@@ -542,10 +577,7 @@ function ImportPreviewResult({
             </div>
 
             <div
-                className={
-                    styles.selectionToolbar
-                }
-            >
+                className={styles.selectionToolbar} >
                 <div>
                     <strong>
                         {selectedCount}
@@ -555,32 +587,18 @@ function ImportPreviewResult({
                         : "opgaver valgt"}
                 </div>
 
-                <div
-                    className={
-                        styles.selectionActions
-                    }
-                >
+                <div className={styles.selectionActions}>
                     <button
                         type="button"
-                        disabled={
-                            allNewSelected
-                        }
-                        onClick={
-                            selectAllNew
-                        }
-                    >
+                        disabled={allNewSelected}
+                        onClick={selectAllNew}>
                         Vælg alle nye
                     </button>
 
                     <button
                         type="button"
-                        disabled={
-                            selectedCount === 0
-                        }
-                        onClick={
-                            deselectAll
-                        }
-                    >
+                        disabled={selectedCount === 0}
+                        onClick={deselectAll}>
                         Fravælg alle
                     </button>
                 </div>
@@ -588,84 +606,40 @@ function ImportPreviewResult({
 
             {selectedDuplicateCount >
                 0 && (
-                    <div
-                        className={
-                            styles.duplicateNotice
-                        }
-                    >
+                    <div className={styles.duplicateNotice}>
                         Du har valgt{" "}
-                        {
-                            selectedDuplicateCount
-                        }{" "}
-                        {selectedDuplicateCount ===
-                            1
-                            ? "mulig dublet"
-                            : "mulige dubletter"}
+                        {selectedDuplicateCount}{" "}
+                        {selectedDuplicateCount === 1 ? "mulig dublet" : "mulige dubletter"}
                         . De vil blive oprettet
                         som nye opgaver ved
                         import.
                     </div>
                 )}
 
-            <div
-                className={
-                    styles.previewRows
-                }
-            >
+            <div className={styles.previewRows} >
                 {preview.rows.map(
                     (row) => {
                         const selected =
-                            selectedRows.has(
-                                row.rowNumber,
-                            );
+                            selectedRows.has(row.rowNumber);
 
                         return (
-                            <div
-                                key={
-                                    row.rowNumber
-                                }
-                                className={`${styles.previewRow} ${selected
-                                    ? styles.previewRowSelected
-                                    : ""
-                                    }`}
-                            >
-                                <div
-                                    className={
-                                        styles.rowSelection
-                                    }
-                                >
+                            <div key={row.rowNumber}
+                                className={`${styles.previewRow} ${selected ? styles.previewRowSelected : ""}`} >
+                                <div className={styles.rowSelection} >
                                     <input
                                         type="checkbox"
-                                        checked={
-                                            selected
-                                        }
-                                        disabled={
-                                            !row.valid
-                                        }
-                                        onChange={() =>
-                                            toggleRow(
-                                                row.rowNumber,
-                                            )
-                                        }
+                                        checked={selected}
+                                        disabled={!row.valid}
+                                        onChange={() => toggleRow(row.rowNumber)}
                                         aria-label={`Vælg række ${row.rowNumber}`}
                                     />
                                 </div>
 
-                                <div
-                                    className={
-                                        styles.rowContent
-                                    }
-                                >
-                                    <div
-                                        className={
-                                            styles.rowTitle
-                                        }
-                                    >
+                                <div className={styles.rowContent}>
+                                    <div className={styles.rowTitle}>
                                         <strong>
                                             Række{" "}
-                                            {
-                                                row.rowNumber
-                                            }
+                                            {row.rowNumber}
                                             :{" "}
                                             {row.data
                                                 .name ||
@@ -673,44 +647,27 @@ function ImportPreviewResult({
                                         </strong>
 
                                         {!row.valid ? (
-                                            <span
-                                                className={
-                                                    styles.rowErrorBadge
-                                                }
-                                            >
+                                            <span className={styles.rowErrorBadge}>
                                                 Fejl
                                             </span>
                                         ) : row.duplicate ? (
                                             <span
-                                                className={
-                                                    styles.duplicateBadge
-                                                }
-                                            >
+                                                className={styles.duplicateBadge}>
                                                 Mulig dublet
                                             </span>
                                         ) : (
-                                            <span
-                                                className={
-                                                    styles.rowValid
-                                                }
-                                            >
+                                            <span className={styles.rowValid}>
                                                 Ny
                                             </span>
                                         )}
                                     </div>
 
                                     <div
-                                        className={
-                                            styles.rowMeta
-                                        }
-                                    >
+                                        className={styles.rowMeta}>
                                         {row.data
                                             .taskTypeName && (
                                                 <span>
-                                                    {
-                                                        row.data
-                                                            .taskTypeName
-                                                    }
+                                                    {row.data.taskTypeName}
                                                 </span>
                                             )}
 
@@ -720,40 +677,29 @@ function ImportPreviewResult({
                                                     <span>
                                                         ·
                                                     </span>
-
                                                     <span>
-                                                        {
-                                                            row.data
-                                                                .environmentName
-                                                        }
+                                                        {row.data.environmentName}
                                                     </span>
                                                 </>
                                             )}
 
-                                        {row.data
-                                            .status && (
-                                                <>
-                                                    <span>
-                                                        ·
-                                                    </span>
+                                        {row.data.status && (
+                                            <>
+                                                <span>
+                                                    ·
+                                                </span>
 
-                                                    <span>
-                                                        {
-                                                            row.data
-                                                                .status
-                                                        }
-                                                    </span>
-                                                </>
-                                            )}
+                                                <span>
+                                                    {row.data.status
+                                                    }
+                                                </span>
+                                            </>
+                                        )}
                                     </div>
 
                                     {row.duplicate &&
                                         row.existingTask && (
-                                            <div
-                                                className={
-                                                    styles.existingTask
-                                                }
-                                            >
+                                            <div className={styles.existingTask}>
                                                 <span>
                                                     Findes
                                                     muligvis
@@ -761,37 +707,21 @@ function ImportPreviewResult({
                                                 </span>
 
                                                 <strong>
-                                                    {
-                                                        row
-                                                            .existingTask
-                                                            .name
-                                                    }
+                                                    {row.existingTask.name}
                                                 </strong>
                                             </div>
                                         )}
 
                                     {!row.valid &&
-                                        row.errors
-                                            .length >
-                                        0 && (
-                                            <div
-                                                className={
-                                                    styles.rowErrors
-                                                }
-                                            >
+                                        row.errors .length >  0 && (
+                                            <div className={styles.rowErrors}>
                                                 {row.errors.map(
                                                     (
                                                         error,
                                                         index,
                                                     ) => (
-                                                        <span
-                                                            key={
-                                                                `${row.rowNumber}-${index}`
-                                                            }
-                                                        >
-                                                            {
-                                                                error
-                                                            }
+                                                        <span key={`${row.rowNumber}-${index}`}>
+                                                            {error}
                                                         </span>
                                                     ),
                                                 )}
@@ -805,10 +735,7 @@ function ImportPreviewResult({
             </div>
 
             <div
-                className={
-                    styles.importSummary
-                }
-            >
+                className={styles.importSummary}>
                 <div>
                     <span>
                         Valgt til import
@@ -822,14 +749,25 @@ function ImportPreviewResult({
                     </strong>
                 </div>
 
-                {selectedCount ===
-                    0 && (
-                        <small>
-                            Vælg mindst én
-                            gyldig opgave for at
-                            fortsætte.
-                        </small>
-                    )}
+                {selectedCount === 0 ? (
+                    <small>
+                        Vælg mindst én gyldig
+                        opgave for at fortsætte.
+                    </small>
+                ) : (
+                    <button
+                        type="button"
+                        className={styles.importButton}
+                        disabled={importing}
+                        onClick={onImport}>
+                        {importing
+                            ? "Importerer..."
+                            : `Importer ${selectedCount} ${selectedCount === 1
+                                ? "opgave"
+                                : "opgaver"
+                            }`}
+                    </button>
+                )}
             </div>
         </section>
     );

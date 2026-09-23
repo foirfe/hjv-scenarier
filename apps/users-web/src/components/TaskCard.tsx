@@ -72,6 +72,42 @@ export default function TaskCard({
   completing,
   onAnswered,
 }: TaskCardProps) {
+  if (task.status === "COMPLETED") {
+  return (
+    <details className={`${styles.card} ${styles.completedCard}`}>
+      <summary className={styles.completedSummary}>
+        <div
+          className={styles.completedSummaryMain}>
+          <div className={styles.meta}>
+            <span className={`${styles.badge} ${styles.completed}`}>
+              {getTaskStatusLabel(
+                task.status,
+              )}
+            </span>
+
+            {task.activationMode && (
+              <span className={styles.badge}>
+                {getActivationLabel(
+                  task.activationMode,
+                )}
+              </span>
+            )}
+          </div>
+
+          <h3>{task.name}</h3>
+        </div>
+
+        <span className={styles.completedToggle}>
+          Vis detaljer
+        </span>
+      </summary>
+
+      <div className={styles.completedContent}>
+        <ActiveTaskContent task={task}/>
+      </div>
+    </details>
+  );
+}
   return (
     <article className={styles.card}>
       <div className={styles.meta}>
@@ -138,14 +174,6 @@ export default function TaskCard({
               {completing? "Færdiggør..." : "Markér som færdig"}
             </button>
           )}
-        </>
-      )}
-
-      {task.status === "COMPLETED" && (
-        <>
-          <p>Opgaven er gennemført.</p>
-
-          <ActiveTaskContent task={task} />
         </>
       )}
     </article>

@@ -48,10 +48,7 @@
 
 .instructorInstructions {
   padding: var(--spacing-md);
-
-  border-left: 4px solid var(--color-primary);
   border-radius: var(--radius-large);
-
   background: var(--color-primary-soft);
 }
 

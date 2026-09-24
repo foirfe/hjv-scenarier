@@ -40,6 +40,13 @@ export default function CreateUserDrawer({
       return;
     }
 
+    if (password.length < 15) {
+      setError(
+        "Adgangskoden skal være mindst 15 tegn",
+      );
+      return;
+    }
+
     try {
       setSaving(true);
       setError("");
@@ -117,7 +124,7 @@ export default function CreateUserDrawer({
 
               <input
                 value={displayName}
-                onChange={(event) =>setDisplayName(event.target.value,)}
+                onChange={(event) => setDisplayName(event.target.value,)}
                 placeholder="F.eks. Mads Kristiansen"
                 required
               />
@@ -144,20 +151,21 @@ export default function CreateUserDrawer({
                 type="password"
                 value={password}
                 onChange={(event) =>
-                  setPassword(
-                    event.target.value,
-                  )
-                }
+                  setPassword(event.target.value)}
                 required
                 autoComplete="new-password"
               />
+              <small>
+                Minimum 15 tegn. Lange
+                adgangssætninger anbefales.
+              </small>
             </label>
 
             <label>
               <span>Systemrolle</span>
               <select
                 value={role}
-                onChange={(event) =>setRole(event.target.value as "USER" | "ADMIN",)}
+                onChange={(event) => setRole(event.target.value as "USER" | "ADMIN",)}
               >
                 <option value="USER">
                   Bruger
@@ -186,7 +194,7 @@ export default function CreateUserDrawer({
             <button
               type="submit"
               disabled={saving}>
-              {saving ? "Opretter...": "Opret bruger"}
+              {saving ? "Opretter..." : "Opret bruger"}
             </button>
           </footer>
         </form>

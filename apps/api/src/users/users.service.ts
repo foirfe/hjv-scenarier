@@ -18,7 +18,7 @@ export class UsersService {
 
     const existingUser = await this.prisma.user.findUnique({
       where: {
-        username: dto.username,
+        username,
       },
     });
 

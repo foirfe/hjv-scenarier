@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
+import { OverviewModule } from './overview/overview.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ScenariosModule } from './scenarios/scenarios.module';
 import { ScenarioRunsModule } from './scenario-runs/scenario-runs.module';
@@ -17,6 +18,7 @@ import { RolesGuard } from './auth/guards/roles.guard';
       isGlobal: true,
     }),
     PrismaModule,
+    OverviewModule,
     TasksModule,
     ScenariosModule,
     UsersModule,

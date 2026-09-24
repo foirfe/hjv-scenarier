@@ -9,8 +9,6 @@ import TasksPage from "./pages/Taskspage";
 import ScenariosPage from "./pages/Scenariopage";
 import ScenarioBuilderPage from "./pages/ScenarioBuilderpage";
 import UsersPage from "./pages/Userspage";
-import ReportsPage from "./pages/Reportspage";
-import SettingsPage from "./pages/Settingspage";
 import RunsPage from "./pages/Runspage";
 import RunSetupPage from "./pages/RunSetuppage";
 
@@ -31,8 +29,6 @@ export default function App() {
           <Route path="/runs" element={<RunsPage />} />
           <Route path="/runs/:runId" element={<RunSetupPage/>}/>
           <Route path="/users" element={<UsersPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>
     </Routes>

@@ -37,13 +37,6 @@ export default function Sidebar() {
         <NavLink to="/users" className={getNavLinkClass}>
           Deltagere
         </NavLink>
-
-        <NavLink to="/reports" className={getNavLinkClass}>
-          Rapporter
-        </NavLink>
-        <NavLink to="/settings" className={getNavLinkClass}>
-          Indstillinger
-        </NavLink>
       </nav>
 
       <div className={styles.sidebarUser}>

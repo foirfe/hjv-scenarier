@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -6,6 +6,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -17,6 +18,13 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
   @Public()
   @Post('login')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+    },
+  })
   @ApiOperation({
     summary: 'Log ind i systemet',
     description:

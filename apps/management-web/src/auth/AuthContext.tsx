@@ -1,6 +1,6 @@
-import {useEffect, useState, type ReactNode} from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
-import { AuthContext, type User} from "./auth-context";
+import { AuthContext, type User } from "./auth-context";
 import { apiFetch } from "../api/apiFetch";
 
 import { API_URL } from "../config";
@@ -57,8 +57,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }),
     });
 
+    if (response.status === 429) {
+      throw new Error(
+        "For mange loginforsøg. Vent et øjeblik og prøv igen.",
+      );
+    }
+
     if (!response.ok) {
-      throw new Error("Forkert brugernavn eller adgangskode");
+      throw new Error(
+        "Forkert brugernavn eller adgangskode",
+      );
     }
 
     const data = (await response.json()) as {

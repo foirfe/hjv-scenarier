@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 import { UsersModule } from '../users/users.module';
 import { AuthController } from './auth.controller';
@@ -14,6 +15,14 @@ if (!jwtSecret) {
 @Module({
   imports: [
     UsersModule,
+
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60_000,
+        limit: 5,
+      },
+    ]),
 
     JwtModule.register({
       global: true,

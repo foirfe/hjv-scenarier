@@ -1,6 +1,6 @@
-import {useCallback, useEffect, useState} from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import {useNavigate,useParams} from "react-router";
+import { useNavigate, useParams } from "react-router";
 
 import { apiFetch } from "../api/apiFetch";
 import styles from "./ScenarioBuilderpage.module.css";
@@ -420,18 +420,15 @@ export default function ScenarioBuilderPage() {
                         className={styles.statusSelect}
                         value={draftStatus}
                         onChange={(event) =>
-                            setDraftStatus(
-                                event.target.value as
-                                | "DRAFT" | "READY",
-                            )
-                        }
-                    >
+                            setDraftStatus(event.target.value as Scenario["status"])}>
                         <option value="DRAFT">
                             Kladde
                         </option>
-
                         <option value="READY">
                             Klar
+                        </option>
+                        <option value="ARCHIVED">
+                            Arkiveret
                         </option>
                     </select>
                     <div className={styles.saveArea}>
@@ -443,14 +440,8 @@ export default function ScenarioBuilderPage() {
                         )}
 
                         <button
-                            disabled={
-                                !hasUnsavedChanges ||
-                                savingScenario
-                            }
-                            onClick={() =>
-                                void saveScenario()
-                            }
-                        >
+                            disabled={!hasUnsavedChanges ||savingScenario}
+                            onClick={() => void saveScenario()}>
                             {savingScenario
                                 ? "Gemmer..."
                                 : "Gem ændringer"}

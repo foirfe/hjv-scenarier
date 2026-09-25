@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router";
-import { apiFetch } from "../api/apiFetch";
+import { NetworkError, apiFetch } from "../api/apiFetch";
+import { useAuth } from "../auth/useAuth";
+import { cacheRun, getCachedRun } from "../offline/runCache";
 import TaskCard from "../components/TaskCard";
 import GpsStatus from "../components/GpsStatus";
 import { useGeolocation } from "../hooks/useGeolocation";
@@ -48,22 +50,69 @@ function getRoleLabel(
 export default function RunPage() {
   const { runId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [run, setRun] = useState<RunDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
+  const userId = user?.id;
 
   useEffect(() => {
+    if (!runId || !userId) {
+      return;
+    }
+
+    const currentRunId = runId;
+    const currentUserId = userId;
+
     let cancelled = false;
-    apiFetch<RunDetail>(
-      `/scenario-runs/${runId}/me`,
-    )
-      .then((data) => {
-        if (!cancelled) {
-          setRun(data);
+
+    async function loadRun() {
+      try {
+        const data =
+          await apiFetch<RunDetail>(
+            `/scenario-runs/${currentRunId}/me`,
+          );
+
+        if (cancelled) {
+          return;
         }
-      })
-      .catch((error) => {
+
+        setRun(data);
+        setError("");
+
+        void cacheRun(
+          currentUserId,
+          data,
+        ).catch((error) => {
+          console.error(
+            "Run kunne ikke caches:",
+            error,
+          );
+        });
+      } catch (error) {
+        if (
+          error instanceof
+          NetworkError
+        ) {
+          const cachedRun =
+            await getCachedRun(
+              currentUserId,
+              currentRunId,
+            );
+          if (cancelled) {
+            return;
+          }
+          if (cachedRun) {
+            setRun(cachedRun.data);
+            setError("");
+            return;
+          }
+          setError(
+            "Serveren kan ikke nås, og der findes ingen offline-kopi af denne øvelse.",
+          );
+
+          return;
+        }
         if (!cancelled) {
           setError(
             error instanceof Error
@@ -71,30 +120,47 @@ export default function RunPage() {
               : "Kunne ikke hente øvelsen",
           );
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) {
           setLoading(false);
         }
-      });
+      }
+    }
+    void loadRun();
 
     return () => {
       cancelled = true;
     };
-  }, [runId]);
+  }, [
+    runId,
+    userId,
+  ]);
 
   const refreshRun =
     useCallback(async () => {
       if (!runId) {
         return;
       }
+
       const data =
         await apiFetch<RunDetail>(
           `/scenario-runs/${runId}/me`,
         );
 
       setRun(data);
-    }, [runId]);
+
+      if (userId) {
+        void cacheRun(
+          userId,
+          data,
+        ).catch((error) => {
+          console.error(
+            "Run kunne ikke caches:",
+            error,
+          );
+        });
+      }
+    }, [runId, userId]);
   //DEFINER OM DET ER DELTAGER ELLER INSTRUKTØR RUN
   const participantRun = run && run.role !== "INSTRUCTOR" ? run : null;
   const instructorRun = run?.role === "INSTRUCTOR" ? run : null;

@@ -5,7 +5,12 @@ import {
 } from "react";
 
 import { AuthContext, type User } from "./auth-context";
-import { apiFetch } from "../api/apiFetch";
+import { NetworkError, apiFetch } from "../api/apiFetch";
+import {
+  clearSessionUser,
+  getSessionUser,
+  saveSessionUser,
+} from "./sessionUser";
 
 import { API_URL } from "../config";
 
@@ -29,10 +34,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((currentUser) => {
         if (!cancelled) {
           setUser(currentUser);
+          saveSessionUser(
+            currentUser,
+          );
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        if (
+          error instanceof
+          NetworkError
+        ) {
+          const cachedUser = getSessionUser();
+          if (!cancelled) {
+            setUser(cachedUser);
+          }
+          return;
+        }
         sessionStorage.removeItem("accessToken");
+        clearSessionUser();
 
         if (!cancelled) {
           setUser(null);
@@ -92,12 +111,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const currentUser = (await meResponse.json()) as User;
 
+    saveSessionUser(currentUser);
 
     setUser(currentUser);
   }
 
   function logout() {
     sessionStorage.removeItem("accessToken");
+    clearSessionUser();
     setUser(null);
   }
 

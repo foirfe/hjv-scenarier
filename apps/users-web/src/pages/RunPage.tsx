@@ -13,8 +13,9 @@ import { useDeviceHeading } from "../hooks/useDeviceHeading";
 import { useGeoTaskActivation, } from "../hooks/useGeoTaskActivation";
 import { useTaskCompletion } from "../hooks/useTaskCompletion";
 import type { RunDetail, ScenarioRole, ScenarioRunStatus } from "../types/scenarioRun";
-import styles from "./RunPage.module.css";
+import SyncStatus from "../components/SyncStatus";
 import { useRunControl } from "../hooks/useRunControl";
+import styles from "./RunPage.module.css";
 
 //HELPER FUNKTIONER
 function getRunStatusLabel(
@@ -239,7 +240,7 @@ export default function RunPage() {
       >
         ← Mine øvelser
       </button>
-
+      <SyncStatus />
       <header className={styles.header}>
         <p className={styles.eyebrow}>
           {getRoleLabel(run.role)}

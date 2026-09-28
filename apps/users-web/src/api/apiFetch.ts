@@ -1,4 +1,5 @@
 import { API_URL } from "../config";
+import { setApiStatus } from "./apiStatus";
 
 export class NetworkError extends Error {
   constructor() {
@@ -35,12 +36,15 @@ export async function apiFetch<T>(
         headers,
       },
     );
+    setApiStatus("online");
   } catch {
+    setApiStatus("offline");
+
     throw new NetworkError();
   }
 
   if (response.status === 401) {
-    sessionStorage.removeItem("accessToken", );
+    sessionStorage.removeItem("accessToken",);
     sessionStorage.removeItem("currentUser",);
     window.location.href =
       "/login";

@@ -1,12 +1,13 @@
-import {useEffect, useRef, useState} from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { apiFetch } from "../api/apiFetch";
+import { useApiStatus } from "./useApiStatus";
 
-import type {ParticipantRunDetail, RunTask} from "../types/scenarioRun";
+import type { ParticipantRunDetail, RunTask } from "../types/scenarioRun";
 
 import type { UserPosition } from "./useGeolocation";
 
-import {getDistanceMeters} from "../utils/getDistanceMeters";
+import { getDistanceMeters } from "../utils/getDistanceMeters";
 
 type UseGeoTaskActivationOptions = {
   runId: string;
@@ -24,9 +25,14 @@ export function useGeoTaskActivation({
   const pendingTaskIds = useRef(new Set<string>());
   const lastAttempt = useRef(new Map<string, number>());
   const [activationError, setActivationError] = useState<string | null>(null);
-
+  const apiStatus = useApiStatus();
   useEffect(() => {
-    if (!run || !position ||run.status !== "IN_PROGRESS"
+    if (
+      apiStatus !== "online" ||
+      !run ||
+      !position ||
+      run.status !==
+      "IN_PROGRESS"
     ) {
       return;
     }
@@ -109,6 +115,7 @@ export function useGeoTaskActivation({
         }
       });
   }, [
+    apiStatus,
     runId,
     run,
     position,
@@ -165,6 +172,6 @@ function canActivateGeoTask(
   }
 
   const distance =
-    getDistanceMeters(position.latitude, position.longitude, taskLatitude,taskLongitude);
+    getDistanceMeters(position.latitude, position.longitude, taskLatitude, taskLongitude);
   return distance <= task.radiusMeters;
 }

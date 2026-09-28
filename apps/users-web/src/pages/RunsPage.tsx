@@ -5,6 +5,7 @@ import {useNavigate} from "react-router";
 import { apiFetch } from "../api/apiFetch";
 import { useAuth } from "../auth/useAuth";
 import styles from "./RunsPage.module.css";
+import SyncStatus from "../components/SyncStatus";
 
 type ScenarioRole =
   | "PARTICIPANT"
@@ -129,6 +130,7 @@ return (
         Log ud
       </button>
     </header>
+    <SyncStatus />
 
     <section>
       <header className={styles.pageHeader}>

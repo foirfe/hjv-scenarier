@@ -1204,6 +1204,16 @@ export class ScenarioRunsService {
         'Opgaven tilhører ikke denne scenarieafvikling',
       );
     }
+    if (
+      progress.status === TaskProgressStatus.COMPLETED &&
+      progress.answeredAt !== null
+    ) {
+      return {
+        correct: progress.answerCorrect ?? null,
+
+        completed: true,
+      };
+    }
 
     if (task.scenarioRun.status !== 'IN_PROGRESS') {
       throw new BadRequestException('Scenarieafviklingen er ikke i gang');

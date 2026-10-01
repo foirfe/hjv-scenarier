@@ -1,6 +1,6 @@
-import type {RunTask} from "../../types/scenarioRun";
+import type { RunTask } from "../../types/scenarioRun";
 
-import { useTaskAnswer} from "../../hooks/useTaskAnswer";
+import { useTaskAnswer } from "../../hooks/useTaskAnswer";
 
 import MultipleChoiceAnswer from "./MultipleChoiceAnswer";
 import YesNoAnswer from "./YesNoAnswer";
@@ -8,19 +8,22 @@ import FreeTextAnswer from "./FreeTextAnswer";
 
 type TaskAnswerProps = {
   runId: string;
+  userId: string | undefined;
   task: RunTask;
   onAnswered:
-    () => void | Promise<void>;
+  () => void | Promise<void>;
 };
 
 export default function TaskAnswer({
   runId,
+  userId,
   task,
   onAnswered,
 }: TaskAnswerProps) {
   const answer =
     useTaskAnswer({
       runId,
+      userId,
       task,
       onAnswered,
     });
@@ -40,6 +43,7 @@ export default function TaskAnswer({
           onToggleOption={
             answer.toggleOption
           }
+          disabled={answer.pending}
         />
       )}
 
@@ -52,17 +56,26 @@ export default function TaskAnswer({
           onSelectOption={
             answer.selectSingleOption
           }
+          disabled={answer.pending}
         />
       )}
 
       {task.answerType ===
         "FREE_TEXT" && (
-        <FreeTextAnswer
-          value={answer.textAnswer}
-          onChange={
-            answer.updateTextAnswer
-          }
-        />
+          <FreeTextAnswer
+            value={answer.textAnswer}
+            onChange={
+              answer.updateTextAnswer
+            }
+            disabled={answer.pending}
+          />
+        )}
+
+      {answer.pending && (
+        <p role="status">
+          Svaret er gemt lokalt og
+          afventer synkronisering.
+        </p>
       )}
 
       {answer.result?.correct === false && (
@@ -82,15 +95,15 @@ export default function TaskAnswer({
         type="button"
         disabled={
           !answer.canSubmit ||
-          answer.submitting
+          answer.submitting ||
+          answer.pending
         }
-        onClick={() =>
-          void answer.submitAnswer()
-        }
-      >
-        {answer.submitting
-          ? "Sender svar..."
-          : "Send svar"}
+        onClick={() => void answer.submitAnswer()}>
+        {answer.pending
+          ? "Svar gemt"
+          : answer.submitting
+            ? "Sender svar..."
+            : "Send svar"}
       </button>
     </div>
   );

@@ -19,6 +19,8 @@ type ChecklistPayload = {
   checked: boolean;
 };
 
+export type SubmitAnswerPayload = | { selectedOptionIds: string[]; } | { textAnswer: string; };
+
 export async function addToSyncQueue({
   userId,
   runId,
@@ -202,4 +204,69 @@ export async function queueChecklistItem(
     type: "CHECKLIST_ITEM",
     payload,
   });
+}
+
+export async function queueTaskAnswer(
+  userId: string,
+  runId: string,
+  taskId: string,
+  payload:
+    SubmitAnswerPayload,
+) {
+  const existing =
+    await offlineDb.syncQueue
+      .where("userId")
+      .equals(userId)
+      .filter(
+        (item) =>
+          item.runId === runId &&
+          item.taskId === taskId &&
+          item.type ===
+          "SUBMIT_ANSWER",
+      )
+      .first();
+
+  if (existing) {
+    await offlineDb.syncQueue.update(
+      existing.id,
+      {
+        payload,
+        attempts: 0,
+        lastError: "",
+      },
+    );
+
+    return {
+      ...existing,
+      payload,
+      attempts: 0,
+      lastError: "",
+    };
+  }
+
+  return addToSyncQueue({
+    userId,
+    runId,
+    taskId,
+    type: "SUBMIT_ANSWER",
+    payload,
+  });
+}
+
+export async function getQueuedTaskAnswer(
+  userId: string,
+  runId: string,
+  taskId: string,
+) {
+  return offlineDb.syncQueue
+    .where("userId")
+    .equals(userId)
+    .filter(
+      (item) =>
+        item.runId === runId &&
+        item.taskId === taskId &&
+        item.type ===
+        "SUBMIT_ANSWER",
+    )
+    .first();
 }

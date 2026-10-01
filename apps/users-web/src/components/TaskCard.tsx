@@ -166,6 +166,7 @@ export default function TaskCard({
           ) : task.answerType ? (
             <TaskAnswer
               runId={runId}
+              userId={userId}
               task={task}
               onAnswered={onAnswered}
             />

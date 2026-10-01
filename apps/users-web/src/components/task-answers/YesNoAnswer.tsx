@@ -3,6 +3,7 @@ import type {RunTask} from "../../types/scenarioRun";
 type Props = {
   task: RunTask;
   selectedOptionIds: string[];
+  disabled: boolean;
   onSelectOption:
     (optionId: string) => void;
 };
@@ -10,10 +11,11 @@ type Props = {
 export default function YesNoAnswer({
   task,
   selectedOptionIds,
+  disabled,
   onSelectOption,
 }: Props) {
   return (
-    <fieldset>
+    <fieldset disabled={disabled}>
       <legend>Vælg svar</legend>
       {task.options.map(
         (option) => (

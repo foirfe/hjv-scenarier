@@ -14,6 +14,8 @@ import { useGeoTaskActivation, } from "../hooks/useGeoTaskActivation";
 import { useTaskCompletion } from "../hooks/useTaskCompletion";
 import type { RunDetail, ScenarioRole, ScenarioRunStatus } from "../types/scenarioRun";
 import SyncStatus from "../components/SyncStatus";
+import { markTaskCompletedLocally } from "../offline/runCache";
+import { RUN_SYNCED_EVENT } from "../offline/syncManager";
 import { useRunControl } from "../hooks/useRunControl";
 import styles from "./RunPage.module.css";
 
@@ -162,10 +164,49 @@ export default function RunPage() {
         });
       }
     }, [runId, userId]);
+
+  useEffect(() => {
+    function handleRunSynced(
+      event: Event,
+    ) {
+      const syncEvent =
+        event as CustomEvent<{
+          runId: string;
+        }>;
+      if (syncEvent.detail.runId !== runId) {
+        return;
+      }
+      void refreshRun();
+    }
+    window.addEventListener(RUN_SYNCED_EVENT, handleRunSynced,);
+
+    return () => {
+      window.removeEventListener(RUN_SYNCED_EVENT, handleRunSynced,);
+    };
+  }, [runId, refreshRun]);
+
+  const handleLocalTaskCompleted =
+    useCallback(
+      async (taskId: string) => {
+        if (!run || !userId) {
+          return;
+        }
+
+        const updatedRun = markTaskCompletedLocally(run, taskId,);
+
+        setRun(updatedRun);
+        try {
+          await cacheRun(userId, updatedRun);
+        } catch (error) {
+          console.error("Lokal run-state kunne ikke gemmes:", error);
+        }
+      },
+      [run, userId],
+    );
   //DEFINER OM DET ER DELTAGER ELLER INSTRUKTØR RUN
   const participantRun = run && run.role !== "INSTRUCTOR" ? run : null;
   const instructorRun = run?.role === "INSTRUCTOR" ? run : null;
-  const { completeTask, completingTaskId, completionError } = useTaskCompletion({ runId: runId ?? "", onCompleted: refreshRun });
+  const { completeTask, completingTaskId, completionError, } = useTaskCompletion({ runId: runId ?? "", userId, onCompleted: refreshRun, onCompletedLocally: handleLocalTaskCompleted, });
 
   const {
     activateTask:
@@ -179,12 +220,7 @@ export default function RunPage() {
     onActivated: refreshRun,
   });
 
-  const {
-    completeRun,
-    abortRun,
-    action: runAction,
-    error: runControlError,
-  } = useRunControl({
+  const { completeRun, abortRun, action: runAction, error: runControlError } = useRunControl({
     runId: runId ?? "",
     onChanged: refreshRun,
   });
@@ -196,6 +232,8 @@ export default function RunPage() {
         task.status === "AVAILABLE" &&
         task.activationMode === "GEO",
     );
+
+
 
   const { supported: gpsSupported, position, error: gpsError, locating, } = useGeolocation(needsGps ?? false);
   const { activationError } = useGeoTaskActivation({ runId: runId ?? "", run: participantRun, position, onActivated: refreshRun });

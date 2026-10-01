@@ -23,3 +23,27 @@ export async function getCachedRun(
         runId,
     ]);
 }
+
+export function markTaskCompletedLocally(
+  run: RunDetail,
+  taskId: string,
+): RunDetail {
+  if (run.role === "INSTRUCTOR") {
+    return run;
+  }
+  const completedAt = new Date().toISOString();
+  return {
+    ...run,
+    tasks: run.tasks.map(
+      (task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              status:
+                "COMPLETED" as const,
+              completedAt,
+            }
+          : task,
+    ),
+  };
+}

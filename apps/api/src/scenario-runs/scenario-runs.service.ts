@@ -12,6 +12,7 @@ import {
   TaskProgressStatus,
   UserRole,
   ScenarioRole,
+  ScenarioRunStatus,
 } from '../../generated/prisma/client';
 import { CreateScenarioRunDto } from './dto/create-scenario-run.dto';
 import { UpdateScenarioRunDto } from './dto/update-scenario-run.dto';
@@ -509,20 +510,6 @@ export class ScenarioRunsService {
   }
   //COMPLETE TASKS OG VALIDERING DERTIL
   async completeTask(runId: string, runTaskId: string, userId: string) {
-    const scenarioRun = await this.prisma.scenarioRun.findUnique({
-      where: {
-        id: runId,
-      },
-    });
-
-    if (!scenarioRun) {
-      throw new NotFoundException('Scenarieafviklingen blev ikke fundet');
-    }
-
-    if (scenarioRun.status !== 'IN_PROGRESS') {
-      throw new BadRequestException('Scenarieafviklingen er ikke i gang');
-    }
-
     const progress = await this.prisma.scenarioRunTaskProgress.findUnique({
       where: {
         scenarioRunTaskId_userId: {
@@ -539,6 +526,12 @@ export class ScenarioRunsService {
                 id: true,
               },
             },
+
+            scenarioRun: {
+              select: {
+                status: true,
+              },
+            },
           },
         },
       },
@@ -552,6 +545,19 @@ export class ScenarioRunsService {
       throw new BadRequestException(
         'Opgaven tilhører ikke denne scenarieafvikling',
       );
+    }
+
+    // Vigtigt for offline-sync:
+    // complete må gerne kaldes igen.
+    if (progress.status === TaskProgressStatus.COMPLETED) {
+      return progress;
+    }
+
+    if (
+      progress.scenarioRunTask.scenarioRun.status !==
+      ScenarioRunStatus.IN_PROGRESS
+    ) {
+      throw new BadRequestException('Scenarieafviklingen er ikke i gang');
     }
 
     if (progress.status !== TaskProgressStatus.ACTIVE) {

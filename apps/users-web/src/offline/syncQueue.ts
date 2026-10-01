@@ -116,3 +116,33 @@ export async function getPendingSyncCount(
     .equals(userId)
     .count();
 }
+
+export async function queueCompleteTask(
+  userId: string,
+  runId: string,
+  taskId: string,
+) {
+  const existing =
+    await offlineDb.syncQueue
+      .where("userId")
+      .equals(userId)
+      .filter(
+        (item) =>
+          item.runId === runId &&
+          item.taskId === taskId &&
+          item.type ===
+            "COMPLETE_TASK",
+      )
+      .first();
+
+  if (existing) {
+    return existing;
+  }
+
+  return addToSyncQueue({
+    userId,
+    runId,
+    taskId,
+    type: "COMPLETE_TASK",
+  });
+}

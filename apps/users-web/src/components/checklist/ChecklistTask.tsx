@@ -1,24 +1,29 @@
-import type {RunTask} from "../../types/scenarioRun";
+import type { RunTask } from "../../types/scenarioRun";
 
-import {useChecklist} from "../../hooks/useChecklist";
+import { useChecklist } from "../../hooks/useChecklist";
 
 import styles from "./ChecklistTask.module.css";
 
 type Props = {
   runId: string;
   task: RunTask;
-
+  userId:
+  | string
+  | undefined;
   onComplete:
-    (taskId: string) => void;
+  (taskId: string) => void;
 
   completing: boolean;
+  onChecklistChanged: (taskId: string, itemId: string, checked: boolean,) => void | Promise<void>;
 };
 
 export default function ChecklistTask({
   runId,
   task,
+  userId,
   onComplete,
   completing,
+  onChecklistChanged,
 }: Props) {
   const {
     checkedItemIds,
@@ -28,6 +33,9 @@ export default function ChecklistTask({
     updateItem,
   } = useChecklist({
     runId,
+
+    userId,
+
     taskId: task.id,
 
     checklistItemIds:
@@ -37,6 +45,9 @@ export default function ChecklistTask({
 
     initialCheckedItemIds:
       task.checkedChecklistItemIds,
+
+    onChangedLocally:
+      onChecklistChanged,
   });
 
   const checkedCount =

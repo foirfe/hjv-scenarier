@@ -60,54 +60,58 @@ function getStatusClass(
 type TaskCardProps = {
   runId: string,
   task: RunTask;
+  userId: string | undefined;
   onComplete: (taskId: string) => void;
   completing: boolean;
   onAnswered: () => void | Promise<void>
+  onChecklistChanged: (taskId: string, itemId: string, checked: boolean,) => void | Promise<void>;
 };
 
 export default function TaskCard({
   runId,
   task,
+  userId,
   onComplete,
   completing,
   onAnswered,
+  onChecklistChanged,
 }: TaskCardProps) {
   if (task.status === "COMPLETED") {
-  return (
-    <details className={`${styles.card} ${styles.completedCard}`}>
-      <summary className={styles.completedSummary}>
-        <div
-          className={styles.completedSummaryMain}>
-          <div className={styles.meta}>
-            <span className={`${styles.badge} ${styles.completed}`}>
-              {getTaskStatusLabel(
-                task.status,
-              )}
-            </span>
-
-            {task.activationMode && (
-              <span className={styles.badge}>
-                {getActivationLabel(
-                  task.activationMode,
+    return (
+      <details className={`${styles.card} ${styles.completedCard}`}>
+        <summary className={styles.completedSummary}>
+          <div
+            className={styles.completedSummaryMain}>
+            <div className={styles.meta}>
+              <span className={`${styles.badge} ${styles.completed}`}>
+                {getTaskStatusLabel(
+                  task.status,
                 )}
               </span>
-            )}
+
+              {task.activationMode && (
+                <span className={styles.badge}>
+                  {getActivationLabel(
+                    task.activationMode,
+                  )}
+                </span>
+              )}
+            </div>
+
+            <h3>{task.name}</h3>
           </div>
 
-          <h3>{task.name}</h3>
+          <span className={styles.completedToggle}>
+            Vis detaljer
+          </span>
+        </summary>
+
+        <div className={styles.completedContent}>
+          <ActiveTaskContent task={task} />
         </div>
-
-        <span className={styles.completedToggle}>
-          Vis detaljer
-        </span>
-      </summary>
-
-      <div className={styles.completedContent}>
-        <ActiveTaskContent task={task}/>
-      </div>
-    </details>
-  );
-}
+      </details>
+    );
+  }
   return (
     <article className={styles.card}>
       <div className={styles.meta}>
@@ -154,8 +158,10 @@ export default function TaskCard({
             <ChecklistTask
               runId={runId}
               task={task}
+              userId={userId}
               onComplete={onComplete}
               completing={completing}
+              onChecklistChanged={onChecklistChanged}
             />
           ) : task.answerType ? (
             <TaskAnswer
@@ -171,7 +177,7 @@ export default function TaskCard({
                 onComplete(task.id)
               }
             >
-              {completing? "Færdiggør..." : "Markér som færdig"}
+              {completing ? "Færdiggør..." : "Markér som færdig"}
             </button>
           )}
         </>

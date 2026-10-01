@@ -14,6 +14,11 @@ type AddSyncItemOptions = {
   payload?: unknown;
 };
 
+type ChecklistPayload = {
+  itemId: string;
+  checked: boolean;
+};
+
 export async function addToSyncQueue({
   userId,
   runId,
@@ -131,7 +136,7 @@ export async function queueCompleteTask(
           item.runId === runId &&
           item.taskId === taskId &&
           item.type ===
-            "COMPLETE_TASK",
+          "COMPLETE_TASK",
       )
       .first();
 
@@ -144,5 +149,57 @@ export async function queueCompleteTask(
     runId,
     taskId,
     type: "COMPLETE_TASK",
+  });
+}
+
+export async function queueChecklistItem(
+  userId: string,
+  runId: string,
+  taskId: string,
+  itemId: string,
+  checked: boolean,
+) {
+  const existing =
+    await offlineDb.syncQueue
+      .where("userId")
+      .equals(userId)
+      .filter(
+        (item) =>
+          item.runId === runId &&
+          item.taskId === taskId &&
+          item.type ===
+          "CHECKLIST_ITEM" &&
+          (
+            item.payload as
+            | ChecklistPayload
+            | null
+          )?.itemId === itemId,
+      )
+      .first();
+
+  const payload:
+    ChecklistPayload = { itemId, checked, };
+
+  if (existing) {
+    await offlineDb.syncQueue.update(existing.id,
+      {
+        payload,
+        attempts: 0,
+        lastError: undefined,
+      },
+    );
+
+    return {
+      ...existing,
+      payload,
+    };
+  }
+
+  return addToSyncQueue({
+    userId,
+    runId,
+    taskId,
+    type: "CHECKLIST_ITEM",
+    payload,
   });
 }

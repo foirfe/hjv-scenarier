@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router";
 import { NetworkError, apiFetch } from "../api/apiFetch";
 import { useAuth } from "../auth/useAuth";
-import { cacheRun, getCachedRun } from "../offline/runCache";
+import { cacheRun, getCachedRun, markTaskCompletedLocally, updateChecklistItemLocally } from "../offline/runCache";
 import TaskCard from "../components/TaskCard";
 import GpsStatus from "../components/GpsStatus";
 import { useGeolocation } from "../hooks/useGeolocation";
@@ -14,7 +14,6 @@ import { useGeoTaskActivation, } from "../hooks/useGeoTaskActivation";
 import { useTaskCompletion } from "../hooks/useTaskCompletion";
 import type { RunDetail, ScenarioRole, ScenarioRunStatus } from "../types/scenarioRun";
 import SyncStatus from "../components/SyncStatus";
-import { markTaskCompletedLocally } from "../offline/runCache";
 import { RUN_SYNCED_EVENT } from "../offline/syncManager";
 import { useRunControl } from "../hooks/useRunControl";
 import styles from "./RunPage.module.css";
@@ -134,10 +133,37 @@ export default function RunPage() {
     return () => {
       cancelled = true;
     };
-  }, [
-    runId,
-    userId,
-  ]);
+  }, [runId, userId]);
+
+  const handleLocalChecklistChange =
+    useCallback(
+      async (
+        taskId: string,
+        itemId: string,
+        checked: boolean,
+      ) => {
+        if (!run || !userId) {
+          return;
+        }
+
+        const updatedRun =
+          updateChecklistItemLocally(
+            run,
+            taskId,
+            itemId,
+            checked,
+          );
+
+        setRun(updatedRun);
+
+        try {
+          await cacheRun(userId, updatedRun);
+        } catch (error) {
+          console.error("Checklist kunne ikke gemmes lokalt:", error);
+        }
+      },
+      [run, userId,],
+    );
 
   const refreshRun =
     useCallback(async () => {
@@ -372,9 +398,11 @@ export default function RunPage() {
                       participantRun.id
                     }
                     task={task}
+                    userId={userId}
                     onComplete={completeTask}
                     completing={completingTaskId === task.id}
                     onAnswered={refreshRun}
+                    onChecklistChanged={handleLocalChecklistChange}
                   />
                 ),
               )}
@@ -410,13 +438,11 @@ export default function RunPage() {
                       participantRun.id
                     }
                     task={task}
-                    onComplete={
-                      completeTask
-                    }
+                    userId={userId}
+                    onComplete={completeTask}
                     completing={false}
-                    onAnswered={
-                      refreshRun
-                    }
+                    onAnswered={refreshRun}
+                    onChecklistChanged={handleLocalChecklistChange}
                   />
                 ),
               )}

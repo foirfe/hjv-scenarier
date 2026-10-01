@@ -6,6 +6,11 @@ export const RUN_SYNCED_EVENT = "hjv-run-synced";
 
 let activeSync: Promise<void> | null = null;
 
+type ChecklistPayload = {
+    itemId: string;
+    checked: boolean;
+};
+
 export function syncPendingChanges(
     userId: string,
 ) {
@@ -41,8 +46,28 @@ async function processQueue(
                         `/scenario-runs/${item.runId}/tasks/${item.taskId}/complete`,
                         { method: "PATCH" },
                     );
-
                     break;
+                case "CHECKLIST_ITEM": {
+                    const payload =
+                        item.payload as
+                        ChecklistPayload;
+                    if (
+                        !payload || typeof payload.itemId !== "string" || typeof payload.checked !== "boolean") {
+                        throw new Error(
+                            "Ugyldig checklist sync-data",
+                        );
+                    }
+                    await apiFetch(
+                        `/scenario-runs/${item.runId}/tasks/${item.taskId}/checklist/${payload.itemId}`,
+                        {
+                            method: "PATCH",
+                            body: JSON.stringify({
+                                checked: payload.checked,
+                            }),
+                        },
+                    );
+                    break;
+                }
 
                 default:
                     return;

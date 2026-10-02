@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
-import { apiFetch } from "../api/apiFetch";
+import { apiFetch, NetworkError } from "../api/apiFetch";
 import { useApiStatus } from "./useApiStatus";
-
+import { queueGeoActivation, type GeoActivationPayload } from "../offline/syncQueue";
 import type { ParticipantRunDetail, RunTask } from "../types/scenarioRun";
 
 import type { UserPosition } from "./useGeolocation";
@@ -11,28 +11,32 @@ import { getDistanceMeters } from "../utils/getDistanceMeters";
 
 type UseGeoTaskActivationOptions = {
   runId: string;
+  userId: string | undefined;
   run: ParticipantRunDetail | null;
   position: UserPosition | null;
   onActivated: () => void | Promise<void>;
+  onActivatedLocally: (taskIds: string[], observedAt: string) => void | Promise<void>;
 };
 
 export function useGeoTaskActivation({
   runId,
+  userId,
   run,
   position,
   onActivated,
+  onActivatedLocally,
 }: UseGeoTaskActivationOptions) {
   const pendingTaskIds = useRef(new Set<string>());
   const lastAttempt = useRef(new Map<string, number>());
   const [activationError, setActivationError] = useState<string | null>(null);
   const apiStatus = useApiStatus();
+
   useEffect(() => {
     if (
-      apiStatus !== "online" ||
+      !userId ||
       !run ||
       !position ||
-      run.status !==
-      "IN_PROGRESS"
+      run.status !== "IN_PROGRESS"
     ) {
       return;
     }
@@ -61,65 +65,122 @@ export function useGeoTaskActivation({
         now,
       );
     }
+    const observedAt = new Date().toISOString();
 
-    void Promise.allSettled(
-      tasksToActivate.map((task) =>
-        apiFetch<unknown>(
-          `/scenario-runs/${runId}/tasks/${task.id}/activate`,
-          {
-            method: "PATCH",
-            body: JSON.stringify({
-              latitude:
-                position.latitude,
-              longitude:
-                position.longitude,
-              accuracyMeters:
-                position.accuracy,
-            }),
-          },
-        ),
-      ),
-    )
-      .then((results) => {
-        const successful =
-          results.some(
-            (result) =>
-              result.status === "fulfilled",
-          );
+    const payload:
+      GeoActivationPayload = {
+      latitude:
+        position.latitude,
 
-        const failed =
-          results.find(
-            (result) =>
-              result.status === "rejected",
-          );
+      longitude:
+        position.longitude,
 
-        if (failed?.status === "rejected") {
-          setActivationError(
-            failed.reason instanceof Error
-              ? failed.reason.message
-              : "Opgaven kunne ikke aktiveres",
-          );
-        } else {
-          setActivationError(null);
+      accuracyMeters:
+        position.accuracy,
+
+      observedAt,
+    };
+
+    void (async () => {
+      const locallyActivatedIds: string[] = [];
+      let serverActivated = false;
+      let firstError: unknown = null;
+
+      for (const task of tasksToActivate) {
+        try {
+          if (apiStatus === "offline") {
+            await queueGeoActivation(
+              userId,
+              runId,
+              task.id,
+              payload,
+            );
+
+            locallyActivatedIds.push(
+              task.id,
+            );
+
+            continue;
+          }
+
+          try {
+            await apiFetch(
+              `/scenario-runs/${runId}/tasks/${task.id}/activate`,
+              {
+                method: "PATCH",
+                body: JSON.stringify(
+                  payload,
+                ),
+              },
+            );
+
+            serverActivated = true;
+          } catch (error) {
+            if (
+              error instanceof
+              NetworkError
+            ) {
+              await queueGeoActivation(
+                userId,
+                runId,
+                task.id,
+                payload,
+              );
+
+              locallyActivatedIds.push(
+                task.id,
+              );
+
+              continue;
+            }
+
+            throw error;
+          }
+        } catch (error) {
+          firstError ??= error;
         }
+      }
 
-        if (successful) {
-          void onActivated();
-        }
-      })
-      .finally(() => {
-        for (const task of tasksToActivate) {
-          pendingTaskIds.current.delete(
-            task.id,
-          );
-        }
-      });
+      if (locallyActivatedIds.length > 0) {
+        await onActivatedLocally(
+          locallyActivatedIds,
+          observedAt,
+        );
+      }
+
+      if (serverActivated) {
+        await onActivated();
+      }
+
+      if (firstError) {
+        setActivationError(
+          firstError instanceof Error
+            ? firstError.message
+            : "Opgaven kunne ikke aktiveres",
+        );
+      } else {
+        setActivationError(
+          null,
+        );
+      }
+    })().finally(() => {
+      for (
+        const task
+        of tasksToActivate
+      ) {
+        pendingTaskIds.current.delete(
+          task.id,
+        );
+      }
+    });
   }, [
     apiStatus,
     runId,
     run,
     position,
     onActivated,
+    onActivatedLocally,
+    userId,
   ]);
 
   return {

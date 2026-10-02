@@ -19,6 +19,13 @@ type ChecklistPayload = {
   checked: boolean;
 };
 
+export type GeoActivationPayload = {
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number;
+  observedAt: string;
+};
+
 export type SubmitAnswerPayload = | { selectedOptionIds: string[]; } | { textAnswer: string; };
 
 export async function addToSyncQueue({
@@ -269,4 +276,38 @@ export async function getQueuedTaskAnswer(
         "SUBMIT_ANSWER",
     )
     .first();
+}
+
+export async function queueGeoActivation(
+  userId: string,
+  runId: string,
+  taskId: string,
+  payload:
+    GeoActivationPayload,
+) {
+  const existing =
+    await offlineDb.syncQueue
+      .where("userId")
+      .equals(userId)
+      .filter(
+        (item) =>
+          item.runId === runId &&
+          item.taskId === taskId &&
+          item.type ===
+            "GEO_ACTIVATE",
+      )
+      .first();
+
+  // Beholder den første position,hvor brugeren faktisk ramte zonen.
+  if (existing) {
+    return existing;
+  }
+
+  return addToSyncQueue({
+    userId,
+    runId,
+    taskId,
+    type: "GEO_ACTIVATE",
+    payload,
+  });
 }

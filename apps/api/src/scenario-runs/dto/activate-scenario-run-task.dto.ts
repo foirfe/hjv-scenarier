@@ -1,4 +1,4 @@
-import { IsNumber, Max, Min } from 'class-validator';
+import { IsISO8601, IsNumber, Max, Min } from 'class-validator';
 
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -27,4 +27,11 @@ export class ActivateScenarioRunTaskDto {
   @Min(0)
   @Max(10_000)
   accuracyMeters!: number;
+
+  @ApiProperty({
+    example: '2026-10-02T08:30:00.000Z',
+    description: 'Tidspunkt hvor positionen blev observeret',
+  })
+  @IsISO8601()
+  observedAt!: string;
 }

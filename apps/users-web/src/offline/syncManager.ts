@@ -1,5 +1,5 @@
 import { apiFetch, NetworkError, } from "../api/apiFetch";
-import type { SubmitAnswerPayload } from "./syncQueue";
+import type { SubmitAnswerPayload, GeoActivationPayload } from "./syncQueue";
 import { getSyncQueue, markSyncFailed, removeFromSyncQueue, } from "./syncQueue";
 
 export const RUN_SYNCED_EVENT = "hjv-run-synced";
@@ -70,9 +70,7 @@ async function processQueue(
                         `/scenario-runs/${item.runId}/tasks/${item.taskId}/checklist/${payload.itemId}`,
                         {
                             method: "PATCH",
-                            body: JSON.stringify({
-                                checked: payload.checked,
-                            }),
+                            body: JSON.stringify({ checked: payload.checked }),
                         },
                     );
                     break;
@@ -85,17 +83,44 @@ async function processQueue(
                     answerResult =
                         await apiFetch<
                             SubmitAnswerResponse
-                        >(
-                            `/scenario-runs/${item.runId}/tasks/${item.taskId}/answer`,
+                        >(`/scenario-runs/${item.runId}/tasks/${item.taskId}/answer`,
                             {
                                 method: "POST",
-
-                                body:
-                                    JSON.stringify(
-                                        payload,
-                                    ),
+                                body: JSON.stringify(payload),
                             },
                         );
+
+                    break;
+                }
+                case "GEO_ACTIVATE": {
+                    const payload =
+                        item.payload as
+                        GeoActivationPayload;
+                    if (
+                        !payload ||
+                        typeof payload.latitude !==
+                        "number" ||
+                        typeof payload.longitude !==
+                        "number" ||
+                        typeof payload.accuracyMeters !==
+                        "number" ||
+                        typeof payload.observedAt !==
+                        "string"
+                    ) {
+                        throw new Error(
+                            "Ugyldig GPS sync-data",
+                        );
+                    }
+
+                    await apiFetch(
+                        `/scenario-runs/${item.runId}/tasks/${item.taskId}/activate`,
+                        {
+                            method: "PATCH",
+
+                            body:
+                                JSON.stringify(payload),
+                        },
+                    );
 
                     break;
                 }

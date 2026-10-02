@@ -728,10 +728,6 @@ export class ScenarioRunsService {
       throw new NotFoundException('Scenarieafviklingen blev ikke fundet');
     }
 
-    if (scenarioRun.status !== 'IN_PROGRESS') {
-      throw new BadRequestException('Scenarieafviklingen er ikke i gang');
-    }
-
     const progress = await this.prisma.scenarioRunTaskProgress.findUnique({
       where: {
         scenarioRunTaskId_userId: {
@@ -748,6 +744,16 @@ export class ScenarioRunsService {
     if (!progress) {
       throw new NotFoundException('Opgaven blev ikke fundet for denne bruger');
     }
+    if (
+      progress.status === TaskProgressStatus.ACTIVE ||
+      progress.status === TaskProgressStatus.COMPLETED
+    ) {
+      return progress;
+    }
+
+    if (scenarioRun.status !== ScenarioRunStatus.IN_PROGRESS) {
+      throw new BadRequestException('Scenarieafviklingen er ikke i gang');
+    }
 
     if (progress.scenarioRunTask.scenarioRunId !== runId) {
       throw new BadRequestException(
@@ -756,9 +762,6 @@ export class ScenarioRunsService {
     }
     if (progress.scenarioRunTask.activationMode !== ActivationMode.GEO) {
       throw new BadRequestException('Opgaven bruger ikke GPS-aktivering');
-    }
-    if (progress.status === TaskProgressStatus.ACTIVE) {
-      return progress;
     }
 
     if (progress.status !== TaskProgressStatus.AVAILABLE) {
@@ -790,9 +793,22 @@ export class ScenarioRunsService {
         `Du er ${Math.round(distanceMeters)} meter fra opgaven`,
       );
     }
+    const observedAt = new Date(dto.observedAt);
 
-    const startedAt = new Date();
+    const now = Date.now();
 
+    if (observedAt.getTime() > now + 5 * 60_000) {
+      throw new BadRequestException(
+        'GPS-tidspunktet ligger for langt i fremtiden',
+      );
+    }
+
+    if (scenarioRun.startedAt && observedAt < scenarioRun.startedAt) {
+      throw new BadRequestException(
+        'GPS-positionen er fra før afviklingen blev startet',
+      );
+    }
+    const startedAt = observedAt;
     const updatedProgress = await this.prisma.scenarioRunTaskProgress.update({
       where: {
         scenarioRunTaskId_userId: {

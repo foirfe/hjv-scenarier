@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router";
 import { NetworkError, apiFetch } from "../api/apiFetch";
 import { useAuth } from "../auth/useAuth";
-import { cacheRun, getCachedRun, markTaskCompletedLocally, updateChecklistItemLocally } from "../offline/runCache";
+import { cacheRun, getCachedRun, markGeoTasksActiveLocally, markTaskCompletedLocally, updateChecklistItemLocally } from "../offline/runCache";
 import TaskCard from "../components/TaskCard";
 import GpsStatus from "../components/GpsStatus";
 import { useGeolocation } from "../hooks/useGeolocation";
@@ -229,6 +229,46 @@ export default function RunPage() {
       },
       [run, userId],
     );
+
+  const handleLocalGeoActivated =
+    useCallback(
+      async (
+        taskIds: string[],
+        observedAt: string,
+      ) => {
+        if (!userId) {
+          return;
+        }
+
+        setRun(
+          (currentRun) => {
+            if (!currentRun) {
+              return currentRun;
+            }
+
+            const updatedRun =
+              markGeoTasksActiveLocally(
+                currentRun,
+                taskIds,
+                observedAt,
+              );
+
+            void cacheRun(
+              userId,
+              updatedRun,
+            ).catch((error) => {
+              console.error(
+                "GPS-aktivering kunne ikke gemmes lokalt:",
+                error,
+              );
+            });
+
+            return updatedRun;
+          },
+        );
+      },
+      [userId],
+    );
   //DEFINER OM DET ER DELTAGER ELLER INSTRUKTØR RUN
   const participantRun = run && run.role !== "INSTRUCTOR" ? run : null;
   const instructorRun = run?.role === "INSTRUCTOR" ? run : null;
@@ -262,7 +302,7 @@ export default function RunPage() {
 
 
   const { supported: gpsSupported, position, error: gpsError, locating, } = useGeolocation(needsGps ?? false);
-  const { activationError } = useGeoTaskActivation({ runId: runId ?? "", run: participantRun, position, onActivated: refreshRun });
+  const { activationError } = useGeoTaskActivation({ runId: runId ?? "", userId, run: participantRun, position, onActivated: refreshRun, onActivatedLocally: handleLocalGeoActivated });
   const { heading, enabled: compassEnabled, error: compassError, requestPermission: enableCompass } = useDeviceHeading();
   if (!runId) {
     return (

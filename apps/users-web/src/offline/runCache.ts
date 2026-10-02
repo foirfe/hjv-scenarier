@@ -89,3 +89,42 @@ export function updateChecklistItemLocally(
         ),
     };
 }
+
+export function markGeoTasksActiveLocally(
+    run: RunDetail,
+    taskIds: string[],
+    observedAt: string,
+): RunDetail {
+    if (
+        run.role ===
+        "INSTRUCTOR"
+    ) {
+        return run;
+    }
+
+    const taskIdSet =
+        new Set(taskIds);
+
+    return {
+        ...run,
+
+        tasks:
+            run.tasks.map(
+                (task) => {
+                    if (!taskIdSet.has(task.id)) {
+                        return task;
+                    }
+
+                    return {
+                        ...task,
+
+                        status:
+                            "ACTIVE" as const,
+
+                        startedAt:
+                            observedAt,
+                    };
+                },
+            ),
+    };
+}

@@ -2,7 +2,8 @@ import Dexie, {
   type Table,
 } from "dexie";
 
-import type { RunDetail } from "../types/scenarioRun";
+import type { OfflineRunSnapshot, RunDetail } from "../types/scenarioRun";
+
 
 export type CachedRun = {
   userId: string;
@@ -37,11 +38,24 @@ export type SyncQueueItem = {
   lastError?: string;
 };
 
+export type CachedRunSnapshot = {
+  userId: string;
+
+  runId: string;
+
+  cachedAt: number;
+
+  data:
+  OfflineRunSnapshot;
+};
+
 class HjvOfflineDatabase
   extends Dexie {
   runs!: Table<CachedRun, [string, string]>;
 
-  syncQueue!: Table< SyncQueueItem, string>;
+  syncQueue!: Table<SyncQueueItem, string>;
+
+  runSnapshots!: Table<CachedRunSnapshot, [string, string]>;
 
   constructor() {
     super("hjv-offline");
@@ -54,6 +68,14 @@ class HjvOfflineDatabase
         "[userId+runId],userId,runId,cachedAt",
       syncQueue:
         "id,userId,runId,taskId,type,createdAt",
+    });
+    this.version(3).stores({
+      runs:
+        "[userId+runId],userId,runId,cachedAt",
+      syncQueue:
+        "id,userId,runId,taskId,type,createdAt",
+      runSnapshots:
+        "[userId+runId],userId,runId,cachedAt",
     });
   }
 }

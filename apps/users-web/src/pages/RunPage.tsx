@@ -12,7 +12,8 @@ import GeoGuide from "../components/GeoGuide";
 import { useDeviceHeading } from "../hooks/useDeviceHeading";
 import { useGeoTaskActivation, } from "../hooks/useGeoTaskActivation";
 import { useTaskCompletion } from "../hooks/useTaskCompletion";
-import type { RunDetail, ScenarioRole, ScenarioRunStatus } from "../types/scenarioRun";
+import type { RunDetail, ScenarioRole, ScenarioRunStatus, OfflineRunSnapshot } from "../types/scenarioRun";
+import { cacheRunSnapshot, getCachedRunSnapshot, mergeRunWithSnapshot } from "../offline/runSnapshot";
 import SyncStatus from "../components/SyncStatus";
 import { RUN_SYNCED_EVENT } from "../offline/syncManager";
 import { useRunControl } from "../hooks/useRunControl";
@@ -54,9 +55,42 @@ export default function RunPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [run, setRun] = useState<RunDetail | null>(null);
+  const [offlineSnapshot, setOfflineSnapshot,] = useState<OfflineRunSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const userId = user?.id;
+
+  async function ensureOfflineSnapshot(
+    userId: string,
+    runId: string,
+  ): Promise<
+    OfflineRunSnapshot | null
+  > {
+    const existing =
+      await getCachedRunSnapshot(
+        userId,
+        runId,
+      );
+
+    if (existing) {
+      return existing.data;
+    }
+
+    try {
+      const snapshot = await apiFetch<OfflineRunSnapshot>(`/scenario-runs/${runId}/offline-snapshot`);
+
+      await cacheRunSnapshot(userId, snapshot);
+
+      return snapshot;
+    } catch (error) {
+      console.error(
+        "Offline snapshot kunne ikke hentes:",
+        error,
+      );
+
+      return null;
+    }
+  }
 
   useEffect(() => {
     if (!runId || !userId) {
@@ -70,21 +104,43 @@ export default function RunPage() {
 
     async function loadRun() {
       try {
-        const data =
-          await apiFetch<RunDetail>(
-            `/scenario-runs/${currentRunId}/me`,
-          );
+        const data = await apiFetch<RunDetail>(`/scenario-runs/${currentRunId}/me`);
+
+        if (cancelled) {
+          return;
+        }
+        let snapshot: OfflineRunSnapshot | null = null;
+
+        if (
+          data.role !== "INSTRUCTOR" && data.status === "IN_PROGRESS") {
+          snapshot =
+            await ensureOfflineSnapshot(
+              currentUserId,
+              currentRunId,
+            );
+        }
+
+        const mergedRun =
+          snapshot
+            ? mergeRunWithSnapshot(
+              data,
+              snapshot,
+            )
+            : data;
 
         if (cancelled) {
           return;
         }
 
-        setRun(data);
+        setOfflineSnapshot(snapshot);
+
+        setRun(mergedRun,);
+
         setError("");
 
         void cacheRun(
           currentUserId,
-          data,
+          mergedRun,
         ).catch((error) => {
           console.error(
             "Run kunne ikke caches:",
@@ -104,9 +160,17 @@ export default function RunPage() {
           if (cancelled) {
             return;
           }
+          const cachedSnapshot = await getCachedRunSnapshot(currentUserId, currentRunId);
           if (cachedRun) {
-            setRun(cachedRun.data);
+            const snapshot = cachedSnapshot?.data ?? null;
+            const mergedRun = snapshot ? mergeRunWithSnapshot(cachedRun.data, snapshot,) : cachedRun.data;
+
+            setOfflineSnapshot(snapshot,);
+
+            setRun(mergedRun);
+
             setError("");
+
             return;
           }
           setError(
@@ -127,13 +191,18 @@ export default function RunPage() {
           setLoading(false);
         }
       }
+
     }
     void loadRun();
+
+
 
     return () => {
       cancelled = true;
     };
   }, [runId, userId]);
+
+
 
   const handleLocalChecklistChange =
     useCallback(
@@ -145,7 +214,6 @@ export default function RunPage() {
         if (!run || !userId) {
           return;
         }
-
         const updatedRun =
           updateChecklistItemLocally(
             run,
@@ -154,15 +222,16 @@ export default function RunPage() {
             checked,
           );
 
-        setRun(updatedRun);
+        const mergedRun = offlineSnapshot ? mergeRunWithSnapshot(updatedRun, offlineSnapshot) : updatedRun;
 
-        try {
-          await cacheRun(userId, updatedRun);
-        } catch (error) {
-          console.error("Checklist kunne ikke gemmes lokalt:", error);
-        }
+        setRun(mergedRun);
+
+        await cacheRun(
+          userId,
+          mergedRun,
+        );
       },
-      [run, userId,],
+      [run, userId, offlineSnapshot],
     );
 
   const refreshRun =
@@ -171,12 +240,23 @@ export default function RunPage() {
         return;
       }
 
-      const data =
-        await apiFetch<RunDetail>(
-          `/scenario-runs/${runId}/me`,
-        );
+      const data = await apiFetch<RunDetail>(`/scenario-runs/${runId}/me`);
 
-      setRun(data);
+      const mergedRun = offlineSnapshot ? mergeRunWithSnapshot(data, offlineSnapshot) : data;
+
+      setRun(mergedRun);
+
+      if (userId) {
+        void cacheRun(
+          userId,
+          mergedRun,
+        ).catch((error) => {
+          console.error(
+            "Run kunne ikke caches:",
+            error,
+          );
+        });
+      }
 
       if (userId) {
         void cacheRun(
@@ -189,7 +269,7 @@ export default function RunPage() {
           );
         });
       }
-    }, [runId, userId]);
+    }, [runId, userId, offlineSnapshot]);
 
   useEffect(() => {
     function handleRunSynced(
@@ -220,14 +300,13 @@ export default function RunPage() {
 
         const updatedRun = markTaskCompletedLocally(run, taskId,);
 
-        setRun(updatedRun);
-        try {
-          await cacheRun(userId, updatedRun);
-        } catch (error) {
-          console.error("Lokal run-state kunne ikke gemmes:", error);
-        }
+        const mergedRun = offlineSnapshot ? mergeRunWithSnapshot(updatedRun, offlineSnapshot,) : updatedRun;
+
+        setRun(mergedRun);
+
+        await cacheRun(userId, mergedRun,);
       },
-      [run, userId],
+      [run, userId, offlineSnapshot],
     );
 
   const handleLocalGeoActivated =
@@ -253,9 +332,17 @@ export default function RunPage() {
                 observedAt,
               );
 
+            const mergedRun =
+              offlineSnapshot
+                ? mergeRunWithSnapshot(
+                  updatedRun,
+                  offlineSnapshot,
+                )
+                : updatedRun;
+
             void cacheRun(
               userId,
-              updatedRun,
+              mergedRun,
             ).catch((error) => {
               console.error(
                 "GPS-aktivering kunne ikke gemmes lokalt:",
@@ -263,11 +350,11 @@ export default function RunPage() {
               );
             });
 
-            return updatedRun;
+            return mergedRun;
           },
         );
       },
-      [userId],
+      [userId, offlineSnapshot],
     );
   //DEFINER OM DET ER DELTAGER ELLER INSTRUKTØR RUN
   const participantRun = run && run.role !== "INSTRUCTOR" ? run : null;

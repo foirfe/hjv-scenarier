@@ -134,3 +134,54 @@ export type InstructorRunTask = {
 
   participants: InstructorTaskParticipant[];
 };
+
+export type OfflineTaskDefinition = {
+  id: string;
+
+  name: string;
+
+  description:
+    string | null;
+
+  instructions:
+    string | null;
+
+  answerType:
+    AnswerType | null;
+
+  taskTypeCode:
+    string | null;
+
+  activationMode:
+    ActivationMode;
+
+  latitude:
+    string | null;
+
+  longitude:
+    string | null;
+
+  radiusMeters:
+    number | null;
+
+  manualActivatedAt:
+    string | null;
+
+  options:
+    RunTaskOption[];
+
+  checklistItems:
+    RunTaskChecklistItem[];
+
+  dependencies: {
+    prerequisiteRunTaskId:
+      string;
+  }[];
+};
+
+export type OfflineRunSnapshot = {
+  runId: string;
+
+  tasks:
+    OfflineTaskDefinition[];
+};

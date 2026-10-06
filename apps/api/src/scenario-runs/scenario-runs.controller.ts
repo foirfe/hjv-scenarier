@@ -146,6 +146,19 @@ export class ScenarioRunsController {
   ) {
     return this.scenarioRunsService.findMe(runId, request.user.sub);
   }
+  @Get(':runId/offline-snapshot')
+  @ApiOperation({
+    summary: 'Hent offline snapshot for scenario run',
+  })
+  getOfflineSnapshot(
+    @Param('runId', ParseUUIDPipe)
+    runId: string,
+
+    @Req()
+    request: AuthenticatedRequest,
+  ) {
+    return this.scenarioRunsService.getOfflineSnapshot(runId, request.user.sub);
+  }
   //GET Scenario Run
   @Get(':runId')
   @Roles(UserRole.ADMIN)

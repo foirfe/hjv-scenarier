@@ -1553,6 +1553,129 @@ export class ScenarioRunsService {
       );
     }
   }
+  async getOfflineSnapshot(runId: string, userId: string) {
+    const runUser = await this.prisma.scenarioRunUser.findUnique({
+      where: {
+        scenarioRunId_userId: {
+          scenarioRunId: runId,
+
+          userId,
+        },
+      },
+
+      select: {
+        role: true,
+
+        scenarioRun: {
+          select: {
+            id: true,
+            status: true,
+
+            tasks: {
+              orderBy: {
+                createdAt: 'asc',
+              },
+
+              select: {
+                id: true,
+
+                name: true,
+
+                description: true,
+
+                instructions: true,
+
+                answerType: true,
+
+                taskTypeCode: true,
+
+                activationMode: true,
+
+                latitude: true,
+
+                longitude: true,
+
+                radiusMeters: true,
+
+                manualActivatedAt: true,
+
+                options: {
+                  orderBy: {
+                    sortOrder: 'asc',
+                  },
+
+                  select: {
+                    id: true,
+
+                    optionText: true,
+
+                    sortOrder: true,
+                  },
+                },
+
+                checklistItems: {
+                  orderBy: {
+                    sortOrder: 'asc',
+                  },
+
+                  select: {
+                    id: true,
+
+                    itemText: true,
+
+                    sortOrder: true,
+                  },
+                },
+
+                dependencies: {
+                  select: {
+                    prerequisiteRunTaskId: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!runUser) {
+      throw new ForbiddenException(
+        'Du er ikke tilknyttet denne scenarieafvikling',
+      );
+    }
+
+    if (runUser.role === ScenarioRole.INSTRUCTOR) {
+      throw new ForbiddenException(
+        'Offline snapshot er kun til deltagere og holdledere',
+      );
+    }
+
+    const run = runUser.scenarioRun;
+
+    if (
+      run.status !== ScenarioRunStatus.IN_PROGRESS &&
+      run.status !== ScenarioRunStatus.COMPLETED
+    ) {
+      throw new BadRequestException(
+        'Offline snapshot er først tilgængeligt når afviklingen er startet',
+      );
+    }
+
+    return {
+      runId: run.id,
+
+      tasks: run.tasks.map((task) => ({
+        ...task,
+
+        latitude: task.latitude?.toString() ?? null,
+
+        longitude: task.longitude?.toString() ?? null,
+
+        manualActivatedAt: task.manualActivatedAt?.toISOString() ?? null,
+      })),
+    };
+  }
 }
 //Hjælpefunktion som gør brug af Haversine-formlen
 function getDistanceMeters(

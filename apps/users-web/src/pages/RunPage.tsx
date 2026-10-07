@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router";
 import { NetworkError, apiFetch } from "../api/apiFetch";
 import { useAuth } from "../auth/useAuth";
-import { cacheRun, getCachedRun, markGeoTasksActiveLocally, markTaskCompletedLocally, updateChecklistItemLocally } from "../offline/runCache";
+import { cacheRun, getCachedRun, markGeoTasksActiveLocally, updateChecklistItemLocally } from "../offline/runCache";
+import { completeTaskLocally } from "../offline/localProgress";
 import TaskCard from "../components/TaskCard";
 import GpsStatus from "../components/GpsStatus";
 import { useGeolocation } from "../hooks/useGeolocation";
@@ -257,18 +258,6 @@ export default function RunPage() {
           );
         });
       }
-
-      if (userId) {
-        void cacheRun(
-          userId,
-          data,
-        ).catch((error) => {
-          console.error(
-            "Run kunne ikke caches:",
-            error,
-          );
-        });
-      }
     }, [runId, userId, offlineSnapshot]);
 
   useEffect(() => {
@@ -294,19 +283,30 @@ export default function RunPage() {
   const handleLocalTaskCompleted =
     useCallback(
       async (taskId: string) => {
-        if (!run || !userId) {
+        if (!userId || !offlineSnapshot) {
           return;
         }
 
-        const updatedRun = markTaskCompletedLocally(run, taskId,);
+        setRun(
+          (currentRun) => {
+            if (!currentRun) {
+              return currentRun;
+            }
 
-        const mergedRun = offlineSnapshot ? mergeRunWithSnapshot(updatedRun, offlineSnapshot,) : updatedRun;
+            const progressedRun = completeTaskLocally(currentRun, offlineSnapshot, taskId);
 
-        setRun(mergedRun);
+            const mergedRun = mergeRunWithSnapshot(progressedRun, offlineSnapshot,);
 
-        await cacheRun(userId, mergedRun,);
+            void cacheRun(userId, mergedRun)
+              .catch((error) => {
+                console.error("Lokal progress kunne ikke gemmes:", error);
+              });
+
+            return mergedRun;
+          },
+        );
       },
-      [run, userId, offlineSnapshot],
+      [userId, offlineSnapshot],
     );
 
   const handleLocalGeoActivated =
